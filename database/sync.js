@@ -40,14 +40,50 @@ function currentUserId() { return localStorage.getItem(CUR); }
 
 async function selectUser(id) {
   localStorage.setItem(CUR, id);
-  // first time this browser picks a user, offer to import its local history
-  if (!localStorage.getItem('weapon_migrated_' + id)) {
+  // import this browser's OLD local history ONE time only (into whoever is
+  // picked first) — never re-import it into every new user.
+  if (!localStorage.getItem('weapon_legacy_imported')) {
     await migrateLocalToCloud(id);
-    localStorage.setItem('weapon_migrated_' + id, '1');
+    localStorage.setItem('weapon_legacy_imported', '1');
   }
-  await pullCloudIntoApp();
+  await loadProfileIntoApp(id);   // this user's own profile
+  await pullCloudIntoApp();        // this user's own workouts
   document.dispatchEvent(new CustomEvent('wpn-user-changed', { detail: { id } }));
-  if (typeof renderAll === 'function') renderAll();
+  renderApp();
+}
+
+/* Pull one user's profile fields into the app's in-memory db, so the ID
+   card / settings / bodyweight all reflect THAT user. */
+async function loadProfileIntoApp(id) {
+  const { data } = await sb.from('app_users')
+    .select('display_name,job,height,bio,spotify,bodyweight_kg,display')
+    .eq('id', id).single();
+  if (!data || typeof db === 'undefined') return;
+  db.profile = {
+    name: data.display_name || '', job: data.job || '',
+    height: data.height || '', bio: data.bio || '', spotify: data.spotify || '',
+  };
+  db.bw = Number(data.bodyweight_kg) || 75;
+  db.display = data.display || {};
+}
+
+/* Save the current user's profile (name/job/height/bio/spotify/bw/display). */
+async function pushProfile() {
+  const id = currentUserId();
+  if (!id || typeof db === 'undefined') return;
+  const p = db.profile || {};
+  await sb.from('app_users').update({
+    display_name: p.name || null, job: p.job || null, height: p.height || null,
+    bio: p.bio || null, spotify: p.spotify || null,
+    bodyweight_kg: db.bw || 75, display: db.display || {},
+  }).eq('id', id);
+}
+
+/* Re-render using the app's real render functions (no single renderAll). */
+function renderApp() {
+  try { if (typeof applyDisplay === 'function') applyDisplay(); } catch (e) {}
+  try { if (typeof applyMode === 'function') applyMode(); } catch (e) {}
+  try { if (typeof renderIDCard === 'function') renderIDCard(); } catch (e) {}
 }
 
 /* ---------- one-time migration of the local blob into a user --------- */
@@ -56,7 +92,15 @@ async function migrateLocalToCloud(userId) {
   try { blob = JSON.parse(localStorage.getItem('gymtracker_v3')); } catch { return; }
   if (!blob) return;
 
-  await sb.from('app_users').update({ bodyweight_kg: Number(blob.bw) || 75 }).eq('id', userId);
+  // carry the old local profile into this first user too
+  const prof = blob.profile || {};
+  const upd = {
+    job: prof.job || null, height: prof.height || null, bio: prof.bio || null,
+    spotify: prof.spotify || null, bodyweight_kg: Number(blob.bw) || 75,
+    display: blob.display || {},
+  };
+  if (prof.name) upd.display_name = prof.name;
+  await sb.from('app_users').update(upd).eq('id', userId);
 
   const exMap = await loadExerciseMap(userId, blob);
   const logs = (blob.strength?.logs || []).concat(blob.endurance?.logs || []);
@@ -142,9 +186,16 @@ const getFeed      = ()   => sb.from('v_feed').select('*').order('created_at', {
 const getBoard     = (exId) => sb.from('v_leaderboard').select('*').eq('exercise_id', exId).order('rank').limit(100);
 
 window.WeaponSync = {
-  listUsers, addUser, selectUser, currentUserId, pullCloudIntoApp, pushLog,
+  listUsers, addUser, selectUser, currentUserId,
+  loadProfileIntoApp, pushProfile, pullCloudIntoApp, pushLog,
   followUser, unfollowUser, likeWorkout, getFeed, getBoard,
 };
 
-/* auto-load the current user's data on page load */
-if (currentUserId()) { pullCloudIntoApp().then(() => { if (typeof renderAll === 'function') renderAll(); }); }
+/* auto-load the current user's profile + data on page load */
+if (currentUserId()) {
+  (async () => {
+    await loadProfileIntoApp(currentUserId());
+    await pullCloudIntoApp();
+    renderApp();
+  })();
+}

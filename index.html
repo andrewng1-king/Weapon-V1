@@ -1072,7 +1072,7 @@ function showRecSummary(){
 function closeRecSummary(){ document.getElementById('recSummary').classList.remove('open'); }
 
 /* ================= bodyweight ================= */
-function saveBW(v){ const x=parseFloat(v); if(!isNaN(x)&&x>0&&x<400){ db.bw=Math.round(x); save(); if(rec.on) updateRecBar(); toast('Bodyweight saved'); } }
+function saveBW(v){ const x=parseFloat(v); if(!isNaN(x)&&x>0&&x<400){ db.bw=Math.round(x); save(); if(window.WeaponSync) WeaponSync.pushProfile(); if(rec.on) updateRecBar(); toast('Bodyweight saved'); } }
 
 /* ================= nav badge / level-up ================= */
 function currentLevel(){ return levelInfo().lvl; }
@@ -1145,7 +1145,7 @@ function saveSettings(){
   db.profile.bio=document.getElementById('pfBio').value.trim();
   db.profile.spotify=document.getElementById('pfSpotify').value.trim();
   const w=parseFloat(document.getElementById('pfWeight').value); if(!isNaN(w)&&w>0&&w<400) db.bw=Math.round(w);
-  save(); renderIDCard(); const bw=document.getElementById('bwInput'); if(bw) bw.value=db.bw; closeSettings(); toast('Profile saved');
+  save(); if(window.WeaponSync) WeaponSync.pushProfile(); renderIDCard(); const bw=document.getElementById('bwInput'); if(bw) bw.value=db.bw; closeSettings(); toast('Profile saved');
 }
 function spotifyEmbed(link){
   if(!link) return '<div class="idc-empty">Add a Spotify track in Settings</div>';
