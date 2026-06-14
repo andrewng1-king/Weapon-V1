@@ -1178,5 +1178,108 @@ window.addEventListener('resize', ()=>{ const t=activeTab(); if(t==='report') re
 if(!storageOK){ setTimeout(()=>toast("Heads up: data won't save in this mode — host it to keep history"),700); }
 
 </script>
+
+<!-- ============================================================
+     Supabase cloud sync. Keys load from env.js, which the GitHub
+     Actions deploy workflow generates from your repo Secrets
+     (SUPABASE_URL / SUPABASE_ANON). Order matters:
+     supabase-js → env.js → sync.js → picker.
+     ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="env.js"></script>
+<script src="database/sync.js"></script>
+
+<!-- ===== user picker (top-left button, no login) ===== -->
+<div id="wpn-user">
+  <button id="wpn-user-btn" type="button">Select user ▾</button>
+  <div id="wpn-user-bar" hidden>
+    <div class="wpn-users" id="wpn-user-list"></div>
+    <form id="wpn-add" class="wpn-add">
+      <input type="text" id="wpn-add-name" placeholder="New user name" maxlength="24" required>
+      <button type="submit">＋ Add</button>
+    </form>
+    <p id="wpn-user-msg"></p>
+  </div>
+</div>
+<style>
+  #wpn-user{ position:fixed; top:12px; left:12px; z-index:9998; font-family:system-ui,sans-serif; }
+  #wpn-user-btn{ background:#cc3551; color:#fff; border:0; border-radius:8px;
+    padding:8px 14px; font:600 13px/1 system-ui; cursor:pointer; }
+  #wpn-user-bar{ margin-top:8px; width:230px; background:#16161a; color:#f3efec;
+    border:1px solid #2a2a30; border-radius:12px; padding:10px; }
+  .wpn-users{ display:flex; flex-direction:column; gap:4px; max-height:240px; overflow:auto; }
+  .wpn-users button{ text-align:left; background:#202026; color:#f3efec; border:0;
+    border-radius:8px; padding:9px 10px; font-size:14px; cursor:pointer; }
+  .wpn-users button.is-current{ outline:2px solid #cc3551; }
+  .wpn-add{ display:flex; gap:6px; margin-top:10px; }
+  .wpn-add input{ flex:1; min-width:0; background:#0f0f12; border:1px solid #2a2a30;
+    color:#f3efec; border-radius:8px; padding:8px; font-size:13px; }
+  .wpn-add button{ background:#cc3551; color:#fff; border:0; border-radius:8px;
+    padding:8px 10px; font:600 13px system-ui; cursor:pointer; white-space:nowrap; }
+  #wpn-user-msg{ min-height:14px; margin:8px 0 0; font-size:12px; color:#e3a; }
+</style>
+<script>
+(function(){
+  var btn  = document.getElementById('wpn-user-btn');
+  var bar  = document.getElementById('wpn-user-bar');
+  var list = document.getElementById('wpn-user-list');
+  var msg  = document.getElementById('wpn-user-msg');
+  var addForm = document.getElementById('wpn-add');
+  var S = window.WeaponSync;
+  function say(t){ msg.textContent = t || ''; }
+  if(!S){ btn.textContent='Sync off'; btn.disabled=true; return; }
+
+  btn.addEventListener('click', function(){
+    bar.hidden = !bar.hidden;
+    if (!bar.hidden) refresh();
+  });
+  async function refresh(){
+    say('Loading…');
+    try {
+      var users = await S.listUsers();
+      var cur = S.currentUserId();
+      list.innerHTML = '';
+      say(users.length ? '' : 'No users yet — add one below.');
+      users.forEach(function(u){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = u.display_name || u.username;
+        if (u.id === cur) { b.className = 'is-current'; b.textContent += '  ✓'; }
+        b.addEventListener('click', async function(){
+          say('Switching…');
+          await S.selectUser(u.id);
+          btn.textContent = (u.display_name || u.username) + ' ▾';
+          bar.hidden = true;
+        });
+        list.appendChild(b);
+      });
+    } catch (e) { say(e.message || 'Could not load users.'); }
+  }
+  addForm.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var name = document.getElementById('wpn-add-name').value.trim();
+    if (!name) return;
+    say('Adding…');
+    try {
+      var u = await S.addUser(name);
+      document.getElementById('wpn-add-name').value = '';
+      await S.selectUser(u.id);
+      btn.textContent = u.username + ' ▾';
+      bar.hidden = true;
+    } catch (e) {
+      say(/duplicate|unique/i.test(e.message) ? 'That name is taken.' : (e.message || 'Could not add user.'));
+    }
+  });
+  (async function(){
+    var cur = S.currentUserId();
+    if (!cur) return;
+    try {
+      var users = await S.listUsers();
+      var u = users.find(function(x){ return x.id === cur; });
+      if (u) btn.textContent = (u.display_name || u.username) + ' ▾';
+    } catch (e) {}
+  })();
+})();
+</script>
 </body>
 </html>

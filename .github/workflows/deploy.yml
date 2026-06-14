@@ -1,0 +1,48 @@
+# Deploys Weapon to GitHub Pages and injects Supabase keys from repo Secrets.
+# Pages source must be set to "GitHub Actions" (Settings → Pages → Source).
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # lets you run it manually from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Write env.js from repository Secrets. This file is NOT in the repo;
+      # it is created fresh on every deploy and shipped with the site.
+      - name: Generate env.js from secrets
+        run: |
+          cat > env.js <<EOF
+          window.SUPABASE_URL  = "${{ secrets.SUPABASE_URL }}";
+          window.SUPABASE_ANON = "${{ secrets.SUPABASE_ANON }}";
+          EOF
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .            # upload the whole repo (static site)
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

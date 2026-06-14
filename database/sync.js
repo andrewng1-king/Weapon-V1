@@ -1,102 +1,85 @@
 /* =====================================================================
- * WEAPON V1 — client sync layer (Supabase)
- * Drop-in scaffold. Load AFTER app.js with the Supabase UMD bundle:
+ * WEAPON V1 — client sync layer (Supabase, user-picker model, no login)
  *
+ * Load AFTER app.js:
  *   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  *   <script src="app.js"></script>
  *   <script src="database/sync.js"></script>
+ *   <!-- then paste database/user-picker.html before </body> -->
  *
- * What it does:
- *   1. Connects to Supabase + handles email/OAuth sign-in.
- *   2. On first login, MIGRATES the existing localStorage blob (gymtracker_v3)
- *      into the cloud tables — so nobody loses their history.
- *   3. Pulls cloud data back into the app's `db` object and re-renders.
- *   4. Pushes new workouts up as they're saved.
- *
- * This is a starting point, not a finished feature. The TODOs mark the
- * spots that depend on decisions still open in DATABASE-PLAN.md.
+ * There are no passwords. A "user" is a row in app_users. The picker
+ * stores the chosen user id in localStorage and everything reads/writes
+ * as that user. Data lives in Supabase (cloud) and syncs across devices.
  * ===================================================================== */
 
-const SB_URL  = 'https://YOUR-PROJECT.supabase.co';   // TODO: from Supabase dashboard
-const SB_ANON = 'YOUR-ANON-KEY';                       // TODO: anon/public key (safe in client)
+// Keys are injected at deploy time via env.js (generated from GitHub Secrets).
+// Falls back to the placeholders so the app still loads if env.js is missing.
+const SB_URL  = (window.SUPABASE_URL  || 'https://YOUR-PROJECT.supabase.co');
+const SB_ANON = (window.SUPABASE_ANON || 'YOUR-ANON-KEY');
 
 const sb = window.supabase.createClient(SB_URL, SB_ANON);
+const CUR = 'weapon_user_id';   // localStorage key holding the selected user id
 
-/* ---------- auth ------------------------------------------------------ */
-async function signInWithEmail(email, password) {
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+/* ---------- users ---------------------------------------------------- */
+async function listUsers() {
+  const { data, error } = await sb.from('app_users')
+    .select('id,username,display_name,bodyweight_kg').order('username');
   if (error) throw error;
+  return data || [];
 }
-async function signUpWithEmail(email, password, username) {
-  const { error } = await sb.auth.signUp({
-    email, password,
-    options: { data: { username } },   // handle_new_user() reads this
-  });
+
+async function addUser(username) {
+  const name = (username || '').trim();
+  const { data, error } = await sb.from('app_users')
+    .insert({ username: name, display_name: name }).select('id,username').single();
   if (error) throw error;
-}
-async function signOut() { await sb.auth.signOut(); }
-
-/* react to login/logout */
-sb.auth.onAuthStateChange(async (_event, session) => {
-  if (session?.user) {
-    await onSignedIn(session.user);
-  }
-});
-
-async function onSignedIn(user) {
-  // one-time migration of the local blob
-  if (!localStorage.getItem('weapon_migrated')) {
-    await migrateLocalToCloud(user.id);
-    localStorage.setItem('weapon_migrated', '1');
-  }
-  await pullCloudIntoApp();   // refresh in-memory db from server
-  if (typeof renderAll === 'function') renderAll();   // app's own re-render hook
+  return data;
 }
 
-/* ---------- one-time migration --------------------------------------- */
-/* Reads the app's existing JSON blob and writes it into the new tables. */
+function currentUserId() { return localStorage.getItem(CUR); }
+
+async function selectUser(id) {
+  localStorage.setItem(CUR, id);
+  // first time this browser picks a user, offer to import its local history
+  if (!localStorage.getItem('weapon_migrated_' + id)) {
+    await migrateLocalToCloud(id);
+    localStorage.setItem('weapon_migrated_' + id, '1');
+  }
+  await pullCloudIntoApp();
+  document.dispatchEvent(new CustomEvent('wpn-user-changed', { detail: { id } }));
+  if (typeof renderAll === 'function') renderAll();
+}
+
+/* ---------- one-time migration of the local blob into a user --------- */
 async function migrateLocalToCloud(userId) {
   let blob;
   try { blob = JSON.parse(localStorage.getItem('gymtracker_v3')); } catch { return; }
   if (!blob) return;
 
-  // map the user's profile bits
-  await sb.from('profiles').update({
-    bodyweight_kg: Number(blob.bw) || 75,
-    mode_pref: blob.mode === 'endurance' ? 'endurance' : 'strength',
-  }).eq('id', userId);
+  await sb.from('app_users').update({ bodyweight_kg: Number(blob.bw) || 75 }).eq('id', userId);
 
-  // build a name->exercise_id map (presets + this user's customs)
   const exMap = await loadExerciseMap(userId, blob);
-
-  // group the flat logs into workouts by date
   const logs = (blob.strength?.logs || []).concat(blob.endurance?.logs || []);
   const byDate = {};
   for (const l of logs) (byDate[l.date] ||= []).push(l);
 
   for (const [date, dayLogs] of Object.entries(byDate)) {
     const { data: w, error } = await sb.from('workouts')
-      .insert({ user_id: userId, date, mode: 'strength', visibility: 'private' })
-      .select('id').single();
-    if (error) { console.error('workout insert', error); continue; }
-
+      .insert({ user_id: userId, date, mode: 'strength' }).select('id').single();
+    if (error) { console.error(error); continue; }
     const rows = dayLogs.map(l => ({
-      workout_id: w.id, user_id: userId,
-      exercise_id: exMap[l.ex],
+      workout_id: w.id, user_id: userId, exercise_id: exMap[l.ex],
       kg: l.kg ?? null, reps: l.reps ?? null, sets: l.sets ?? 1,
-    })).filter(r => r.exercise_id);   // skip logs whose exercise we couldn't map
+    })).filter(r => r.exercise_id);
     if (rows.length) await sb.from('workout_logs').insert(rows);
   }
 }
 
-/* Ensure every exercise name in the blob has a row; create customs as needed. */
 async function loadExerciseMap(userId, blob) {
   const { data: ex } = await sb.from('exercises')
     .select('id,name,owner_id').or(`is_preset.eq.true,owner_id.eq.${userId}`);
   const map = {};
   for (const e of ex || []) map[e.name] = e.id;
-
-  // create custom exercises that exist locally but not in the catalogue
   const customs = (blob.strength?.custom || []).concat(blob.endurance?.custom || []);
   for (const c of customs) {
     if (map[c.n]) continue;
@@ -109,70 +92,59 @@ async function loadExerciseMap(userId, blob) {
   return map;
 }
 
-/* ---------- pull / push ---------------------------------------------- */
-/* Rebuild the app's in-memory `db` from the cloud. */
+/* ---------- pull / push for the current user ------------------------- */
 async function pullCloudIntoApp() {
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return;
-
+  const uid = currentUserId();
+  if (!uid) return;
   const { data: logs } = await sb.from('workout_logs')
     .select('id,kg,reps,sets,created_at, workouts!inner(date,mode), exercises!inner(name)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true });
-
-  // reshape into the app's {ex,kg,reps,sets,date,id} log format
+    .eq('user_id', uid).order('created_at', { ascending: true });
   const flat = (logs || []).map(r => ({
     id: r.id, date: r.workouts.date, ex: r.exercises.name,
     kg: r.kg, reps: r.reps, sets: r.sets,
   }));
-
   if (typeof db !== 'undefined') {
-    db.strength.logs = flat;            // TODO: split strength vs endurance by workouts.mode
-    if (typeof save === 'function') save();   // keep local cache warm/offline
+    db.strength.logs = flat;   // TODO: split strength vs endurance by workouts.mode
+    if (typeof save === 'function') save();
   }
 }
 
-/* Call this from the app's addLog() after a set is recorded. */
-async function pushLog(log, opts = {}) {
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return;                    // offline / logged-out: stays in localStorage only
-
-  // find-or-create the workout for that date
+async function pushLog(log) {
+  const uid = currentUserId();
+  if (!uid) return;   // no user selected → stays local only
   let { data: w } = await sb.from('workouts')
-    .select('id').eq('user_id', user.id).eq('date', log.date).maybeSingle();
+    .select('id').eq('user_id', uid).eq('date', log.date).maybeSingle();
   if (!w) {
-    const ins = await sb.from('workouts')
-      .insert({ user_id: user.id, date: log.date, visibility: opts.visibility || 'followers' })
-      .select('id').single();
+    const ins = await sb.from('workouts').insert({ user_id: uid, date: log.date }).select('id').single();
     w = ins.data;
   }
-  const exId = await ensureExerciseId(user.id, log.ex);
+  const exId = await ensureExerciseId(uid, log.ex);
   await sb.from('workout_logs').insert({
-    workout_id: w.id, user_id: user.id, exercise_id: exId,
+    workout_id: w.id, user_id: uid, exercise_id: exId,
     kg: log.kg, reps: log.reps, sets: log.sets,
   });
 }
 
-async function ensureExerciseId(userId, name) {
+async function ensureExerciseId(uid, name) {
   const { data } = await sb.from('exercises')
-    .select('id').or(`is_preset.eq.true,owner_id.eq.${userId}`).eq('name', name).maybeSingle();
+    .select('id').or(`is_preset.eq.true,owner_id.eq.${uid}`).eq('name', name).maybeSingle();
   if (data) return data.id;
   const ins = await sb.from('exercises')
-    .insert({ owner_id: userId, name, muscle_group: 'Chest', is_preset: false })
-    .select('id').single();
+    .insert({ owner_id: uid, name, muscle_group: 'Chest', is_preset: false }).select('id').single();
   return ins.data.id;
 }
 
-/* ---------- social helpers (used by the feed UI you build next) ------ */
-const followUser   = (id) => sb.from('follows').insert({ following_id: id });
-const unfollowUser = (id) => sb.from('follows').delete().eq('following_id', id);
-const likeWorkout  = (id) => sb.from('workout_likes').insert({ workout_id: id });
+/* ---------- social helpers (for the feed/leaderboard UI later) ------- */
+const followUser   = (id) => sb.from('follows').insert({ follower_id: currentUserId(), following_id: id });
+const unfollowUser = (id) => sb.from('follows').delete().eq('follower_id', currentUserId()).eq('following_id', id);
+const likeWorkout  = (id) => sb.from('workout_likes').insert({ workout_id: id, user_id: currentUserId() });
 const getFeed      = ()   => sb.from('v_feed').select('*').order('created_at', { ascending: false }).limit(50);
 const getBoard     = (exId) => sb.from('v_leaderboard').select('*').eq('exercise_id', exId).order('rank').limit(100);
 
-/* expose for the rest of the app */
 window.WeaponSync = {
-  signInWithEmail, signUpWithEmail, signOut,
-  pullCloudIntoApp, pushLog,
+  listUsers, addUser, selectUser, currentUserId, pullCloudIntoApp, pushLog,
   followUser, unfollowUser, likeWorkout, getFeed, getBoard,
 };
+
+/* auto-load the current user's data on page load */
+if (currentUserId()) { pullCloudIntoApp().then(() => { if (typeof renderAll === 'function') renderAll(); }); }
