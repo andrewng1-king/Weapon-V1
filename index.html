@@ -278,19 +278,21 @@
   .bottomnav button[data-t="avatar"].leveled .lvup-badge{display:block; animation:lvupb .8s ease-in-out infinite alternate;}
   @keyframes lvupb{from{transform:translateY(0)} to{transform:translateY(-2px)}}
 
-  /* LOG — fill-wipe button */
-  .logbtn{overflow:hidden; font-family:var(--sans); font-weight:800; letter-spacing:1.5px; text-transform:none; clip-path:polygon(0 0, 100% 0, 100% 68%, 86% 100%, 0 100%); background:#0d0d10; color:var(--accent); border:1px solid rgba(var(--accent-rgb),.55); box-shadow:none; min-width:64px;}
-  .logbtn .lb-fill{position:absolute; inset:0; background:var(--accent); transform:scaleX(0); transform-origin:left center; transition:transform .4s ease-in-out; z-index:0;}
-  .logbtn .lb-rest{position:relative; z-index:1; display:flex; align-items:center; justify-content:center;}
-  .logbtn .lb-base{color:var(--accent);}
-  .logbtn .lb-rev{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#0d0d10; clip-path:inset(0 100% 0 0); transition:clip-path .4s ease-in-out;}
-  .logbtn .lb-go, .logbtn .lb-done{position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .12s ease;}
-  .logbtn .lb-go .log-ico, .logbtn .lb-done .log-ico{color:#0d0d10;}
-  @media (hover:hover){ .logbtn:not(.is-go):not(.is-done):hover .lb-fill{transform:scaleX(1);} .logbtn:not(.is-go):not(.is-done):hover .lb-rev{clip-path:inset(0 0 0 0);} }
-  .logbtn.is-go .lb-fill, .logbtn.is-done .lb-fill{transform:scaleX(1);}
-  .logbtn.is-go .lb-rest, .logbtn.is-done .lb-rest{opacity:0;}
-  .logbtn.is-go .lb-go{opacity:1;}
+  /* LOG — diagonal fill-wipe button */
+  .logbtn{overflow:hidden; clip-path:polygon(0 0, 100% 0, 100% 68%, 86% 100%, 0 100%); background:#0d0d10; color:#fff; border:1px solid #000; box-shadow:none; min-width:64px;}
+  .logbtn>span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
+  .logbtn .lb-fill{background:var(--accent); z-index:0; clip-path:polygon(0 0, 0 0, 0 100%, 0 100%); transition:clip-path .5s linear;}
+  .logbtn .lb-base{z-index:1; transition:opacity .3s ease;}
+  .logbtn .lb-base .log-ico{color:var(--accent);}
+  .logbtn .lb-rev{z-index:2; clip-path:polygon(0 0, 0 0, 0 100%, 0 100%); transition:clip-path .5s linear, opacity .3s ease;}
+  .logbtn .lb-rev .log-ico{color:#000;}
+  .logbtn .lb-done{z-index:3; opacity:0; transition:opacity .18s ease .32s;}
+  .logbtn .lb-done .log-ico{color:#000;}
+  @media (hover:hover){ .logbtn:not(.is-done):not(.locked):hover .lb-fill, .logbtn:not(.is-done):not(.locked):hover .lb-rev{clip-path:polygon(0 0, 115% 0, 100% 100%, 0 100%);} }
+  .logbtn.is-done .lb-fill, .logbtn.is-done .lb-rev{clip-path:polygon(0 0, 115% 0, 100% 100%, 0 100%);}
+  .logbtn.is-done .lb-base, .logbtn.is-done .lb-rev{opacity:0;}
   .logbtn.is-done .lb-done{opacity:1;}
+  .logbtn.locked{pointer-events:none;}
   .logbtn:active{transform:scale(.985);}
   .logbtn.firing{animation:logjab .26s ease;}
   @keyframes logjab{0%{transform:translateX(0)} 30%{transform:translateX(-3px) scale(.99)} 100%{transform:translateX(0)}}
@@ -802,7 +804,7 @@ function renderGroup(){
             <div class="val"><input type="number" step="1" inputmode="numeric" value="${v.reps}" onchange="setVal('${attr(ex.n)}','reps',this.value)"><span class="unit">reps · 3 sets</span></div>
             <button onclick="bump('${attr(ex.n)}','reps',1)">+</button>
           </div>
-          <button class="logbtn" id="log_${sid}" onclick="logEx('${attr(ex.n)}')" aria-label="Log set"><span class="lb-fill" aria-hidden="true"></span><span class="lb-rest"><span class="lb-base">log</span><span class="lb-rev" aria-hidden="true">log</span></span><span class="lb-go" aria-hidden="true"><svg class="log-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l6 6-6 6M12 6l6 6-6 6"></path></svg></span><span class="lb-done" aria-hidden="true"><svg class="log-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg></span></button>
+          <button class="logbtn${todayN?' is-done locked':''}" id="log_${sid}" onclick="logEx('${attr(ex.n)}')" aria-label="Log set"><span class="lb-fill" aria-hidden="true"></span><span class="lb-base"><svg class="log-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l6 6-6 6M12 6l6 6-6 6"></path></svg></span><span class="lb-rev" aria-hidden="true"><svg class="log-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l6 6-6 6M12 6l6 6-6 6"></path></svg></span><span class="lb-done" aria-hidden="true"><svg class="log-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg></span></button>
         </div>
         <div class="detail" id="detail_${sid}"></div>
       </div>`;
@@ -819,17 +821,15 @@ function bump(name,field,d){
 function setVal(name,field,val){ const ex=findEx(name); if(!ex) return; const v=getVals(ex); const x=parseFloat(val); if(!isNaN(x)&&x>=0) v[field]=x; }
 function logEx(name){
   const ex=findEx(name); if(!ex) return; const v=getVals(ex);
+  if(S().logs.some(l=>l.ex===name && l.date===todayStr())) return;
   const log={id:uid(), date:todayStr(), ex:name, kg:v.kg, reps:v.reps, sets:3};
   const btn=document.getElementById('log_'+slug(name));
-  if(btn){
-    btn.classList.remove('firing','is-done'); void btn.offsetWidth; btn.classList.add('firing','is-go');
-    setTimeout(()=>{ btn.classList.remove('is-go'); btn.classList.add('is-done'); }, 240);
-  }
+  if(btn){ btn.classList.remove('firing'); void btn.offsetWidth; btn.classList.add('firing','is-done'); }
   if(navigator.vibrate) navigator.vibrate([12,28,12]);
   S().logs.push(log);
   if(rec.on){ rec.items.push({ex:name, xp:logXP(log), cal:calForLog(log)}); updateRecBar(); }
   save(); toast(`${name} · ${v.kg} kg × ${v.reps}`);
-  checkLevelUp(); setTimeout(renderGroup, 1000);
+  checkLevelUp(); setTimeout(renderGroup, 700);
 }
 function toggleDetail(sid,name){
   const d=document.getElementById('detail_'+sid);
