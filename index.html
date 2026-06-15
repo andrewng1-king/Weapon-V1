@@ -1450,7 +1450,10 @@ function unlogEx(name){
   if(btn){ btn.classList.remove('is-done','firing'); btn.classList.add('is-undo'); }
   S().logs=S().logs.filter(l=>!(l.ex===name && l.date===todayStr()));
   if(navigator.vibrate) navigator.vibrate(18);
-  save(); toast(name+' · log removed'); checkLevelUp(); setTimeout(renderGroup, 600);
+  save(); toast(name+' · log removed'); checkLevelUp();
+  /* Patch 1.1.8: hold the white-fill / red-X state for 2s, swipe back to default, then re-sync */
+  if(btn){ setTimeout(function(){ btn.classList.remove('is-undo'); }, 2000); setTimeout(renderGroup, 2200); }
+  else { setTimeout(renderGroup, 2200); }
 }
 function logEx(name){
   const ex=findEx(name); if(!ex) return; const v=getVals(ex);
@@ -1798,7 +1801,7 @@ function calForVals(kg,reps,sets){ const bw=db.bw||75; kg=+kg||0; reps=+reps||0;
 function calForLog(l){ return calForVals(l.kg, l.reps, l.sets||3); }
 /* Patch 1.1.6: round button starts recording & opens the full window; while recording it reopens it */
 function toggleRecord(){ rec.on?maximizeRecord():startRecord(); }
-function startRecord(){ rec={on:true, start:Date.now(), items:[], timer:null}; document.getElementById('recBtn').classList.add('recording'); maximizeRecord(); updateRecBar(); rec.timer=setInterval(updateRecBar,1000); toast('Recording started'); }
+function startRecord(){ rec={on:true, start:Date.now(), items:[], timer:null, tags:{skill:[],challenge:[]}}; document.getElementById('recBtn').classList.add('recording'); maximizeRecord(); updateRecBar(); rec.timer=setInterval(updateRecBar,1000); toast('Recording started'); }
 function maximizeRecord(){ if(!rec.on) return; const f=document.getElementById('recFull'); if(f) f.classList.add('open'); document.getElementById('recBar').classList.remove('show'); updateRecBar(); }
 function minimizeRecord(){ const f=document.getElementById('recFull'); if(f) f.classList.remove('open'); if(rec.on) document.getElementById('recBar').classList.add('show'); }
 function updateRecBar(){ if(!rec.on) return; const secs=Math.floor((Date.now()-rec.start)/1000); const mins=secs/60; const cal=rec.items.reduce((a,i)=>a+i.cal,0); const xp=rec.items.reduce((a,i)=>a+i.xp,0); const t=fmtClock(secs), c=Math.round(cal), r=mins>0.05?(cal/mins).toFixed(1):'0';
@@ -1810,7 +1813,7 @@ function showRecSummary(){
   const secs=Math.floor((Date.now()-rec.start)/1000); const mins=secs/60;
   const cal=rec.items.reduce((a,i)=>a+i.cal,0); const xp=rec.items.reduce((a,i)=>a+i.xp,0);
   const rate= mins>0.05?(cal/mins).toFixed(1):'0';
-  const list = rec.items.length ? rec.items.map(i=>`<div class="rec-row"><span class="rx-ex">${esc(i.ex)}</span><span class="rx-meta">+${i.xp} XP · ${i.cal} kcal</span></div>`).join('') : '<div class="empty" style="padding:18px 0">No exercises logged this session</div>';
+  const list = rec.items.length ? rec.items.map(i=>`<div class="rec-row"><span class="rx-ex">${esc(i.ex)}</span><span class="rx-meta">+${i.xp} XP · ${i.tag?esc(i.tag):i.cal+' kcal'}</span></div>`).join('') : '<div class="empty" style="padding:18px 0">No exercises logged this session</div>';
   document.getElementById('recSumBody').innerHTML =
     `<div class="rec-totals"><div class="stat"><div class="v">${fmtClock(secs)}</div><div class="l">Time</div></div><div class="stat"><div class="v">${Math.round(cal)}</div><div class="l">kcal</div></div><div class="stat"><div class="v">${rate}</div><div class="l">kcal / min</div></div></div>`+
     `<div style="font-size:.66rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin:8px 2px 2px">Exercises · +${xp} XP total</div>`+list;
@@ -2087,10 +2090,23 @@ function recLog(name){ const ex=findEx(name); if(!ex) return; const v=getVals(ex
   save(); if(navigator.vibrate) navigator.vibrate([12,28,12]); toast(name+' · '+v.kg+' kg × '+v.reps); checkLevelUp(); renderRecLogger();
 }
 const REC_CHALLENGES=['100 Pull-ups','5K under 25:00','30-Day Streak','1000 kg Volume Day','Handstand Hold 30s'];
-function recTag(n){ toast(n+' — tagged for this session'); }
-function openRecSkills(){ const items=SKILLS_DATA.reduce((a,s)=>a.concat(s.items.map(it=>it[0])),[]); document.getElementById('recSkillsBody').innerHTML='<div class="rex-pick">'+items.map(n=>'<span class="skill-chip" onclick="recTag(\''+attr(n)+'\')">'+esc(n)+'</span>').join('')+'</div>'; document.getElementById('recSkillsModal').classList.add('open'); }
+const REC_TAG_XP={skill:20, challenge:40};
+/* Patch 1.1.8: actually log skills & challenges during a recording (toggle + XP + summary) */
+function recTagList(type){ rec.tags=rec.tags||{skill:[],challenge:[]}; rec.tags[type]=rec.tags[type]||[]; return rec.tags[type]; }
+function recToggleTag(type,name){
+  if(!rec.on){ toast('Start recording first'); return; }
+  const arr=recTagList(type); const i=arr.indexOf(name); const xp=REC_TAG_XP[type]||20;
+  if(i>=0){ arr.splice(i,1); rec.items=rec.items.filter(it=>!(it.tag===type&&it.ex===name)); toast(name+' — removed'); }
+  else { arr.push(name); rec.items.push({ex:name, xp:xp, cal:0, tag:type}); if(navigator.vibrate) navigator.vibrate([10,22,10]); toast(name+' · '+(type==='skill'?'skill':'challenge')+' logged +'+xp+' XP'); }
+  updateRecBar(); if(type==='skill') renderRecSkills(); else renderRecChall();
+}
+function recToggleSkill(n){ recToggleTag('skill',n); }
+function recToggleChall(n){ recToggleTag('challenge',n); }
+function renderRecSkills(){ const items=SKILLS_DATA.reduce((a,s)=>a.concat(s.items.map(it=>it[0])),[]); const sel=recTagList('skill'); document.getElementById('recSkillsBody').innerHTML='<div class="rex-pick">'+items.map(n=>'<span class="skill-chip'+(sel.indexOf(n)>=0?' earned':'')+'" onclick="recToggleSkill(\''+attr(n)+'\')">'+esc(n)+'</span>').join('')+'</div>'; }
+function renderRecChall(){ const sel=recTagList('challenge'); document.getElementById('recChallBody').innerHTML='<div class="rex-pick">'+REC_CHALLENGES.map(n=>'<span class="skill-chip'+(sel.indexOf(n)>=0?' earned':'')+'" onclick="recToggleChall(\''+attr(n)+'\')">'+esc(n)+'</span>').join('')+'</div>'; }
+function openRecSkills(){ renderRecSkills(); document.getElementById('recSkillsModal').classList.add('open'); }
 function closeRecSkills(){ document.getElementById('recSkillsModal').classList.remove('open'); }
-function openRecChall(){ document.getElementById('recChallBody').innerHTML='<div class="rex-pick">'+REC_CHALLENGES.map(n=>'<span class="skill-chip" onclick="recTag(\''+attr(n)+'\')">'+esc(n)+'</span>').join('')+'</div>'; document.getElementById('recChallModal').classList.add('open'); }
+function openRecChall(){ renderRecChall(); document.getElementById('recChallModal').classList.add('open'); }
 function closeRecChall(){ document.getElementById('recChallModal').classList.remove('open'); }
 
 /* ===== Patch 1.1.7: Friends (one bot friend, live activity feed) ===== */
@@ -2195,6 +2211,55 @@ if(!storageOK){ setTimeout(()=>toast("Heads up: data won't save in this mode —
 <script src="database/sync.js"></script>
 
 <!-- ===== Patch 1.1.6: user switching moved into the top-left menu; floating button removed ===== -->
+<style id="v13-patch118">
+/* ===== Patch 1.1.8: LOG button redesign ===== */
+/* Resting (unlogged): red fill + black >> chevron.
+   Log  (click): 150ms swipe -> red fill + black V tick, stays.
+   Unlog(click): 150ms swipe -> white fill + red X, holds 2s, reverts to resting. */
+.logbtn{ position:relative; overflow:hidden; min-width:64px; min-height:54px; border:none; border-radius:0;
+  background:var(--accent); color:#000;
+  clip-path:polygon(0 0, 100% 0, 100% 68%, 86% 100%, 0 100%); }
+.logbtn>span{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+.logbtn .log-ico{ width:24px; height:24px; display:block; }
+
+/* persistent red base fill */
+.logbtn .lb-fill{ z-index:0; background:var(--accent); clip-path:none; opacity:1; }
+/* default >> chevron (black on red) */
+.logbtn .lb-base{ z-index:1; opacity:1; transition:opacity .12s ease; }
+.logbtn .lb-base .log-ico{ color:#000; }
+/* unused reverse layer */
+.logbtn .lb-rev{ display:none; }
+/* V tick (logged) — wipes in left->right */
+.logbtn .lb-done{ z-index:2; opacity:0; clip-path:polygon(0 0, 0 0, 0 100%, 0 100%);
+  transition:clip-path .15s linear, opacity .05s linear; }
+.logbtn .lb-done .log-ico{ color:#000; }
+/* white fill (unlog) — wipes in left->right */
+.logbtn .lb-xfill{ z-index:3; background:#fff; clip-path:polygon(0 0, 0 0, 0 100%, 0 100%);
+  transition:clip-path .15s linear; }
+/* X icon (unlog) — red on white */
+.logbtn .lb-undo{ z-index:4; opacity:0; transition:opacity .05s linear; pointer-events:none; }
+.logbtn .lb-undo .log-ico{ color:var(--accent); }
+
+/* LOGGED: red fill + black V tick */
+.logbtn.is-done .lb-base{ opacity:0; }
+.logbtn.is-done .lb-done{ opacity:1; clip-path:polygon(0 0, 116% 0, 100% 100%, 0 100%); }
+
+/* UNLOG transient: white fill swipes right + red X */
+.logbtn.is-undo .lb-xfill{ clip-path:polygon(0 0, 116% 0, 100% 100%, 0 100%); }
+.logbtn.is-undo .lb-undo{ opacity:1; }
+.logbtn.is-undo .lb-base,
+.logbtn.is-undo .lb-done{ opacity:0; }
+
+/* neutralise older hover-to-unlog behaviour (unlog is click-driven now) */
+.logbtn.is-done:hover .lb-xfill{ clip-path:polygon(0 0, 0 0, 0 100%, 0 100%); }
+.logbtn.is-done:hover .lb-undo{ opacity:0; }
+.logbtn.is-done:hover .lb-done{ opacity:1; }
+
+.logbtn:active{ transform:scale(.97); }
+@media (prefers-reduced-motion: reduce){
+  .logbtn .lb-done, .logbtn .lb-xfill{ transition:none; }
+}
+</style>
 <style>
   .wpn-users{ display:flex; flex-direction:column; gap:5px; max-height:200px; overflow:auto; }
   .wpn-users button{ text-align:left; background:var(--surface2); color:#f3efec; border:1px solid var(--border);
