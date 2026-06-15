@@ -723,7 +723,7 @@ header .brand{ font-size:var(--brand-size,1.15rem); }
 /* 6) main menu drawer (top-left 3-stripes) */
 .mm-bg{ position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .25s ease; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
 .mm-bg.open{ opacity:1; pointer-events:auto; }
-.mm-panel{ position:absolute; top:0; left:0; bottom:0; width:80%; max-width:320px; background:var(--surface2); border-right:1px solid var(--border); box-shadow:6px 0 30px rgba(0,0,0,.5); padding:calc(20px + env(safe-area-inset-top)) 16px 20px; transform:translateX(-104%); transition:transform .28s cubic-bezier(.3,.8,.3,1); display:flex; flex-direction:column; gap:8px; }
+.mm-panel{ position:absolute; top:0; left:0; bottom:0; width:70%; max-width:272px; background:var(--surface2); border-right:1px solid var(--border); box-shadow:6px 0 30px rgba(0,0,0,.5); padding:calc(20px + env(safe-area-inset-top)) 14px 20px; transform:translateX(-104%); transition:transform .28s cubic-bezier(.3,.8,.3,1); display:flex; flex-direction:column; gap:7px; } /* Patch 1.1.7: smaller menu */
 .mm-bg.open .mm-panel{ transform:translateX(0); }
 .mm-greet{ font-family:var(--display); font-size:1.25rem; letter-spacing:1px; color:#fff; margin:6px 4px 16px; }
 .mm-item{ display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:15px 16px; color:#f1ecef; font-family:var(--sans); font-size:.95rem; font-weight:600; cursor:pointer; transition:background .15s, border-color .15s; touch-action:manipulation; }
@@ -737,7 +737,7 @@ header .brand{ font-size:var(--brand-size,1.15rem); }
 .idc-nameline{ display:flex; align-items:baseline; justify-content:center; gap:8px; max-width:100%; }
 .idc-nameline .idc-name{ text-align:left; }
 .idc-rank{ color:var(--muted); font-size:.72rem; font-weight:500; letter-spacing:.5px; white-space:nowrap; flex:0 0 auto; }
-.idc-title{ text-align:center; font-family:var(--display); font-size:.72rem; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-top:4px; }
+.idc-title{ text-align:center; font-family:var(--rankfont); font-size:.74rem; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-top:4px; } /* Patch 1.1.7: title uses rank font */
 
 /* 5) bigger hero cover */
 .idc-cover2{ height:210px !important; }
@@ -824,6 +824,59 @@ header .brand{ font-size:var(--brand-size,1.15rem); }
 .bottomnav button[data-t] .ico-wrap, .bottomnav button[data-t].active .ico-wrap{ width:24px !important; height:24px !important; }
 .bottomnav button[data-t].active .ico-wrap{ filter:drop-shadow(0 0 8px rgba(var(--accent-rgb),.95)) !important; }
 .bottomnav button[data-t].active .nav-label{ opacity:1 !important; max-height:14px !important; margin-top:0 !important; }
+
+/* ================= Patch 1.1.7 ================= */
+/* 1) detailed visual ID card inside the More window */
+.wid-card{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--border); background:var(--surface2); margin-bottom:16px; padding-bottom:14px; }
+.wid-cover{ height:120px; background:#0c0d11 center/cover no-repeat; }
+.wid-cover.nofill{ background:linear-gradient(120deg, rgba(var(--accent-rgb),.32), rgba(255,255,255,.02)); }
+.wid-av{ width:84px; height:84px; border-radius:50%; overflow:hidden; margin:-46px auto 0; background:var(--accent); border:3px solid var(--bg); display:flex; align-items:center; justify-content:center; font-family:var(--rankfont); font-size:1.4rem; color:#fff; position:relative; z-index:1; box-shadow:0 0 0 2px var(--accent); }
+.wid-av img{ width:100%; height:100%; object-fit:cover; }
+.wid-idline{ display:flex; align-items:baseline; justify-content:center; gap:8px; margin-top:10px; }
+.wid-cname{ font-family:var(--rankfont); font-size:1.05rem; letter-spacing:.5px; color:#fff; }
+.wid-rk{ font-size:.72rem; color:var(--muted); }
+.wid-ctitle{ text-align:center; font-family:var(--rankfont); font-size:.74rem; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-top:4px; }
+.wid-bio{ text-align:center; font-size:.8rem; color:#cfc9cd; margin:8px 16px 0; }
+
+/* 3) record-screen tool buttons + sub-modals */
+.rf-tools{ display:flex; gap:9px; }
+.rf-tool{ display:flex; flex-direction:column; align-items:center; gap:5px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:11px 15px; color:#fff; font-size:.62rem; letter-spacing:.5px; text-transform:uppercase; cursor:pointer; min-width:78px; }
+.rf-tool svg{ width:20px; height:20px; }
+.rf-tool:active{ background:rgba(var(--accent-rgb),.2); }
+.recsub{ z-index:10060; }
+/* mini exercise logger */
+.rex-groups{ display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:6px; }
+.rex-gbtn{ flex:0 0 auto; background:var(--surface2); border:1px solid var(--border); color:var(--muted); border-radius:999px; padding:7px 13px; font-size:.72rem; cursor:pointer; }
+.rex-gbtn.on{ background:rgba(var(--accent-rgb),.16); border-color:var(--accent); color:#fff; }
+.rex-row{ background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:10px 11px; margin-bottom:8px; }
+.rex-name{ font-weight:600; color:#f1ecef; font-size:.86rem; margin-bottom:8px; }
+.rex-done{ color:var(--accent); }
+.rex-ctl{ display:flex; gap:7px; align-items:stretch; }
+.rex-ctl .stepper{ min-height:42px; }
+.rex-log{ flex:0 0 auto; background:var(--accent); color:#fff; border:none; border-radius:12px; padding:0 16px; font-family:var(--sans); font-weight:700; font-size:.78rem; cursor:pointer; }
+.rex-pick{ display:flex; flex-wrap:wrap; gap:8px; }
+
+/* 4) friends */
+.fr-list{ display:flex; flex-direction:column; gap:10px; }
+.fr-card{ display:flex; align-items:center; gap:12px; background:var(--surface2); border:1px solid var(--border); border-radius:13px; padding:11px 13px; cursor:pointer; }
+.fr-av{ width:44px; height:44px; border-radius:50%; overflow:hidden; background:var(--accent); display:flex; align-items:center; justify-content:center; font-family:var(--rankfont); color:#fff; flex:0 0 auto; position:relative; }
+.fr-av img{ width:100%; height:100%; object-fit:cover; }
+.fr-live{ position:absolute; right:-1px; bottom:-1px; width:12px; height:12px; border-radius:50%; background:#36d36b; border:2px solid var(--surface2); }
+.fr-main{ flex:1; min-width:0; }
+.fr-name{ font-weight:700; color:#fff; font-size:.92rem; }
+.fr-sub{ font-size:.68rem; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fr-feed{ display:flex; flex-direction:column; gap:8px; }
+.fr-ev{ display:flex; gap:10px; align-items:flex-start; background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:10px 12px; animation:frpop .35s ease; }
+@keyframes frpop{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:none; } }
+.fr-ev .fe-ico{ font-size:1rem; }
+.fr-ev .fe-txt{ flex:1; font-size:.8rem; color:#e7e2e5; }
+.fr-ev .fe-time{ font-size:.6rem; color:var(--muted); margin-top:2px; }
+.fr-back{ background:none; border:none; color:var(--accent); font-size:.78rem; cursor:pointer; padding:4px 0; margin-bottom:6px; }
+
+/* 7) cover adjust mode */
+.idc-cover2.adjusting{ cursor:grab; outline:2px dashed var(--accent); outline-offset:-4px; }
+.idc-cover2.adjusting::after{ content:'Drag to reposition'; position:absolute; left:0; right:0; bottom:8px; text-align:center; font-size:.62rem; letter-spacing:1px; text-transform:uppercase; color:#fff; text-shadow:0 1px 4px #000; }
+.idc-cover2{ position:relative; }
 </style>
 </head>
 <body data-mode="strength">
@@ -919,7 +972,7 @@ header .brand{ font-size:var(--brand-size,1.15rem); }
         <div class="dev-slider"><input id="devLvl" type="range" min="1" max="21" step="1" oninput="devSetLvl(this.value)"><span class="dv" id="devLvlVal"></span></div>
       </div>
       <div class="dev-row"><label>Sizes</label>
-        <p class="dev-hint">Turn dev mode on, then drag the <b>◣ corner handle</b> on the app name, the avatar, or the Spotify player to resize it.</p>
+        <p class="dev-hint">Turn dev mode on, then drag the <b>◣ corner handle</b> on the app name or the Spotify player to resize it.</p>
       </div>
       <div class="dev-row"><label>Color scheme — <span id="devModeLabel"></span></label><div class="dev-colors" id="devColors"></div></div>
       <button class="dev-reset" onclick="devReset()">Reset dev overrides</button>
@@ -1009,6 +1062,10 @@ header .brand{ font-size:var(--brand-size,1.15rem); }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5.5"/><path d="M8.5 13.5L7 22l5-2.6L17 22l-1.5-8.5"/></svg>
       <span>Titles</span>
     </button>
+    <button class="mm-item" type="button" onclick="openFriends()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="3.2"/><path d="M2.5 20a6 6 0 0 1 12 0"/><circle cx="17" cy="7" r="2.6"/><path d="M16 13.2A5.5 5.5 0 0 1 21.5 18.5"/></svg>
+      <span>Friends</span>
+    </button>
     <button class="mm-item" type="button" onclick="toast('Club — coming soon')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M17.5 14.2A6.5 6.5 0 0 1 21.5 20"/></svg>
       <span>Club</span>
@@ -1056,7 +1113,29 @@ header .brand{ font-size:var(--brand-size,1.15rem); }
     <div class="rf-metric"><b id="rfRate">0</b><span>kcal/min</span></div>
     <div class="rf-metric"><b id="rfXp">+0</b><span>XP</span></div>
   </div>
+  <!-- Patch 1.1.7: log tools during recording -->
+  <div class="rf-tools">
+    <button class="rf-tool" type="button" onclick="openRecEx()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2 9v6M5.5 7v10M18.5 7v10M22 9v6M5.5 12h13"/></svg>Exercises</button>
+    <button class="rf-tool" type="button" onclick="openRecSkills()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg>Skills</button>
+    <button class="rf-tool" type="button" onclick="openRecChall()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 5.2 5.5.8-4 3.9.9 5.6L12 16.9 7.1 18.5l.9-5.6-4-3.9 5.5-.8z"/></svg>Challenges</button>
+  </div>
   <button class="rf-stop" type="button" onclick="stopRecord()" aria-label="Stop & finish"></button>
+</div>
+
+<!-- Patch 1.1.7: record sub-modals (log during recording) -->
+<div class="modal-bg recsub" id="recExModal" onclick="if(event.target===this)closeRecEx()">
+  <div class="modal" style="max-height:80vh; overflow-y:auto"><h3>Log exercise</h3><div id="recExBody"></div><div class="mrow"><button class="m-save blurlift" onclick="closeRecEx()">Done</button></div></div>
+</div>
+<div class="modal-bg recsub" id="recSkillsModal" onclick="if(event.target===this)closeRecSkills()">
+  <div class="modal" style="max-height:80vh; overflow-y:auto"><h3>Skills</h3><div class="hint" style="margin:-4px 0 12px">Mark a skill performed this session</div><div id="recSkillsBody"></div><div class="mrow"><button class="m-save blurlift" onclick="closeRecSkills()">Done</button></div></div>
+</div>
+<div class="modal-bg recsub" id="recChallModal" onclick="if(event.target===this)closeRecChall()">
+  <div class="modal" style="max-height:80vh; overflow-y:auto"><h3>Challenges</h3><div class="hint" style="margin:-4px 0 12px">Tag a challenge for this session</div><div id="recChallBody"></div><div class="mrow"><button class="m-save blurlift" onclick="closeRecChall()">Done</button></div></div>
+</div>
+
+<!-- Patch 1.1.7: Friends modal + friend profile -->
+<div class="modal-bg" id="friendsModal" onclick="if(event.target===this)closeFriends()">
+  <div class="modal" style="max-height:88vh; overflow-y:auto"><h3>Friends</h3><div class="hint" style="margin:-4px 0 12px">People you follow who follow you back · live</div><div id="friendsBody"></div><div class="mrow"><button class="m-save blurlift" onclick="closeFriends()">Close</button></div></div>
 </div>
 
 <!-- history calendar modal -->
@@ -1140,9 +1219,10 @@ function S(){ return db[db.mode]; }
 /* ---- accent colour packs (dev-selectable) ---- */
 const ACCENTS={
   strength:[
-    {name:'Crimson', hex:'#cc3551', rgb:'204,53,81',  dim:'#9e2740'},
-    {name:'Scarlet', hex:'#e23a3a', rgb:'226,58,58',  dim:'#a82626'},
-    {name:'Rose',    hex:'#e0457e', rgb:'224,69,126', dim:'#a82d5c'},
+    /* Patch 1.1.7: pink -> midnight green; last -> gold */
+    {name:'Midnight Green', hex:'#15786A', rgb:'21,120,106', dim:'#0F5247'},
+    {name:'Scarlet',        hex:'#e23a3a', rgb:'226,58,58',  dim:'#a82626'},
+    {name:'Gold',           hex:'#E8C547', rgb:'232,197,71',  dim:'#b89a2e'},
   ],
   endurance:[
     {name:'Teal',  hex:'#3fb6ae', rgb:'63,182,174', dim:'#2c8079'},
@@ -1828,15 +1908,15 @@ function renderIDCard(){
   const d=db.dev||{};
   const name=p.name||'Unnamed Athlete';
   const initials=((p.name||'WX').trim().split(/\s+/).map(s=>s[0]||'').join('').slice(0,2).toUpperCase())||'WX';
-  /* Patch 1.1.6: rank word beside name + selectable title below name (Job dropped) */
-  const rankName=rankFor(devLevel()).name;
+  /* Patch 1.1.7: leaderboard rank beside name (#N Worldwide); selectable title below */
+  const rankName='#'+myLbRank()+' Worldwide';
   const title=p.title||(db.mode==='endurance'?'Roadrunner':'Worldbreaker');
   const autoDays=new Set(S().logs.map(l=>l.date)).size;
   const daysLifted=(d.days!=null&&d.days!=='')?d.days:autoDays;
   const followers=(d.followers!=null&&d.followers!=='')?d.followers:(p.followers||0);
   const challenges=(d.challenges!=null&&d.challenges!=='')?d.challenges:(p.challenges||0);
   const av=p.photo?('<img src="'+p.photo+'" alt="">'):esc(initials);
-  const cover=p.cover?(" style=\"background-image:url('"+String(p.cover).replace(/'/g,"%27")+"')\""):''; /* Patch 1.1.5: single-quote url() so the inline style attribute isn't broken by JSON double-quotes */
+  const cover=p.cover?(" style=\"background-image:url('"+String(p.cover).replace(/'/g,"%27")+"'); background-position:"+(p.coverPos||'50% 40%')+"\""):''; /* Patch 1.1.5/1.1.7: single-quote url() + adjustable position */
   const rankIco=emblemForLevel(devLevel());
   el.innerHTML=
     /* Patch 1.1.5: settings now lives on the ID card (top-right) as a user icon */
@@ -1863,6 +1943,7 @@ function renderIDCard(){
       '<div class="idc-spotify">'+spotifyEmbed(p.spotify)+'</div>'+
     '</div>';
   devRefreshHandles();
+  attachCoverAdjust();
 }
 
 /* ================= profile photos ================= */
@@ -1882,14 +1963,19 @@ function openMainMenu(){
 }
 function closeMainMenu(){ const bg=document.getElementById('mainMenuBg'); if(bg) bg.classList.remove('open'); }
 
-/* ===== Patch 1.1.6: Rankings leaderboard (placeholder data, styled borders) ===== */
-function openRankings(){
+/* ===== Patch 1.1.6/1.1.7: Rankings leaderboard (placeholder data, styled borders) ===== */
+const LB_MOCK=[['Atlas Vane',48200],['Kira Stone',41750],['Drax Mörk',38900],['Sole Renner',32100],['Bjorn Hale',28640],['Mei Tanaka',24980],['Rico Vasquez',21340],['Nova Pike',17850],['Sam Okafor',14220],['Lena Frost',11600],['Tobi Reyes',9050],['Priya Anand',6400]];
+function lbRows(){
   const li=levelInfo(); const myXp=li.xp||0;
   const myName=(db.profile&&db.profile.name)?db.profile.name:'You';
-  const mock=[['Atlas Vane',48200],['Kira Stone',41750],['Drax Mörk',38900],['Sole Renner',32100],['Bjorn Hale',28640],['Mei Tanaka',24980],['Rico Vasquez',21340],['Nova Pike',17850],['Sam Okafor',14220],['Lena Frost',11600],['Tobi Reyes',9050],['Priya Anand',6400]];
-  let rows=mock.map(m=>({name:m[0], xp:m[1], me:false}));
+  let rows=LB_MOCK.map(m=>({name:m[0], xp:m[1], me:false}));
   rows.push({name:myName, xp:myXp, me:true});
   rows.sort((a,b)=>b.xp-a.xp);
+  return rows;
+}
+function myLbRank(){ const rows=lbRows(); return rows.findIndex(r=>r.me)+1; }
+function openRankings(){
+  const rows=lbRows();
   const medals=['🥇','🥈','🥉'];
   document.getElementById('lbList').innerHTML=rows.map((r,i)=>{
     const rank=i+1; let cls='lb-row'; if(rank<=3) cls+=' top3'; else if(rank<=10) cls+=' top10'; if(r.me) cls+=' me';
@@ -1939,12 +2025,22 @@ function openWeaponID(){
   const totalCal=allLogs.reduce((a,l)=>a+(calForLog(l)||0),0);
   const daysLifted=new Set(allLogs.map(l=>l.date)).size;
   const followers=p.followers||0;
-  const rankName=rankFor(devLevel()).name;
   const name=p.name||'Unnamed Athlete';
   const title=curTitle();
+  const rk='#'+myLbRank()+' Worldwide';
+  const initials=((p.name||'WX').trim().split(/\s+/).map(s=>s[0]||'').join('').slice(0,2).toUpperCase())||'WX';
+  const av=p.photo?('<img src="'+p.photo+'" alt="">'):esc(initials);
+  const coverStyle=p.cover?(" style=\"background-image:url('"+String(p.cover).replace(/'/g,"%27")+"'); background-position:"+(p.coverPos||'50% 40%')+"\""):'';
   const stat=(v,l)=>'<div class="wid-stat"><b>'+v+'</b><span>'+l+'</span></div>';
   document.getElementById('weaponIdBody').innerHTML=
-    '<div class="wid-hero"><div class="wid-name">'+esc(name)+'</div><div class="wid-sub">'+esc(rankName)+' · '+esc(title)+'</div></div>'+
+    /* Patch 1.1.7: detailed visual ID card */
+    '<div class="wid-card">'+
+      '<div class="wid-cover'+(p.cover?'':' nofill')+'"'+coverStyle+'></div>'+
+      '<div class="wid-av">'+av+'</div>'+
+      '<div class="wid-idline"><span class="wid-cname">'+esc(name)+'</span><span class="wid-rk">'+rk+'</span></div>'+
+      '<div class="wid-ctitle">'+esc(title)+'</div>'+
+      (p.bio?('<div class="wid-bio">'+esc(p.bio)+'</div>'):'')+
+    '</div>'+
     '<div class="wid-grid">'+
       stat(fmtK(Math.round(totalCal)),'Calories burnt')+
       stat(fmtK(daysLifted),'Days lifted')+
@@ -1953,7 +2049,7 @@ function openWeaponID(){
       stat('0','Streaks')+
       stat(fmtK(followers),'Followers')+
       stat('0','Skills')+
-      stat('LV '+devLevel(),'Ranking')+
+      stat(rk.replace(' Worldwide',''),'Ranking')+
       stat('0','Clubs')+
       stat((p.title?1:0),'Titles')+
     '</div>'+
@@ -1961,6 +2057,91 @@ function openWeaponID(){
   document.getElementById('weaponIdModal').classList.add('open');
 }
 function closeWeaponID(){ document.getElementById('weaponIdModal').classList.remove('open'); }
+
+/* ===== Patch 1.1.7: log tools inside the record window ===== */
+let recExGroup=null;
+function openRecEx(){ recExGroup=recExGroup||curGroup||GROUPS[0]; renderRecLogger(); document.getElementById('recExModal').classList.add('open'); }
+function closeRecEx(){ document.getElementById('recExModal').classList.remove('open'); }
+function recSetGroup(g){ recExGroup=g; renderRecLogger(); }
+function renderRecLogger(){
+  const body=document.getElementById('recExBody'); if(!body) return;
+  if(db.mode==='endurance'){ body.innerHTML='<div class="empty" style="padding:18px 0">Run logging coming soon — switch to Strength.</div>'; return; }
+  const exs=exercisesFor(recExGroup); const today=todayStr();
+  body.innerHTML=
+    '<div class="rex-groups">'+GROUPS.map(g=>'<button class="rex-gbtn'+(g===recExGroup?' on':'')+'" onclick="recSetGroup(\''+attr(g)+'\')">'+esc(g)+'</button>').join('')+'</div>'+
+    exs.map(ex=>{ const v=getVals(ex); const todayN=S().logs.filter(l=>l.ex===ex.n&&l.date===today).length;
+      return '<div class="rex-row"><div class="rex-name">'+esc(ex.n)+(todayN?' <span class="rex-done">✓</span>':'')+'</div>'+
+        '<div class="rex-ctl">'+
+          '<div class="stepper"><button onclick="recBump(\''+attr(ex.n)+'\',\'kg\',-2.5)">−</button><div class="val"><input type="number" step="0.5" inputmode="decimal" value="'+v.kg+'" onchange="recSet(\''+attr(ex.n)+'\',\'kg\',this.value)"><span class="unit">kg</span></div><button onclick="recBump(\''+attr(ex.n)+'\',\'kg\',2.5)">+</button></div>'+
+          '<div class="stepper"><button onclick="recBump(\''+attr(ex.n)+'\',\'reps\',-1)">−</button><div class="val"><input type="number" step="1" inputmode="numeric" value="'+v.reps+'" onchange="recSet(\''+attr(ex.n)+'\',\'reps\',this.value)"><span class="unit">reps</span></div><button onclick="recBump(\''+attr(ex.n)+'\',\'reps\',1)">+</button></div>'+
+          '<button class="rex-log" onclick="recLog(\''+attr(ex.n)+'\')">Log</button>'+
+        '</div></div>';
+    }).join('');
+}
+function recBump(name,field,d){ const ex=findEx(name); if(!ex) return; const v=getVals(ex); v[field]=Math.max(0,round1(v[field]+d)); renderRecLogger(); }
+function recSet(name,field,val){ const ex=findEx(name); if(!ex) return; const v=getVals(ex); const x=parseFloat(val); if(!isNaN(x)&&x>=0) v[field]=x; }
+function recLog(name){ const ex=findEx(name); if(!ex) return; const v=getVals(ex);
+  const log={id:uid(), date:todayStr(), ex:name, kg:v.kg, reps:v.reps, sets:3};
+  S().logs.push(log);
+  if(rec.on){ rec.items.push({ex:name, xp:logXP(log), cal:calForLog(log)}); updateRecBar(); }
+  save(); if(navigator.vibrate) navigator.vibrate([12,28,12]); toast(name+' · '+v.kg+' kg × '+v.reps); checkLevelUp(); renderRecLogger();
+}
+const REC_CHALLENGES=['100 Pull-ups','5K under 25:00','30-Day Streak','1000 kg Volume Day','Handstand Hold 30s'];
+function recTag(n){ toast(n+' — tagged for this session'); }
+function openRecSkills(){ const items=SKILLS_DATA.reduce((a,s)=>a.concat(s.items.map(it=>it[0])),[]); document.getElementById('recSkillsBody').innerHTML='<div class="rex-pick">'+items.map(n=>'<span class="skill-chip" onclick="recTag(\''+attr(n)+'\')">'+esc(n)+'</span>').join('')+'</div>'; document.getElementById('recSkillsModal').classList.add('open'); }
+function closeRecSkills(){ document.getElementById('recSkillsModal').classList.remove('open'); }
+function openRecChall(){ document.getElementById('recChallBody').innerHTML='<div class="rex-pick">'+REC_CHALLENGES.map(n=>'<span class="skill-chip" onclick="recTag(\''+attr(n)+'\')">'+esc(n)+'</span>').join('')+'</div>'; document.getElementById('recChallModal').classList.add('open'); }
+function closeRecChall(){ document.getElementById('recChallModal').classList.remove('open'); }
+
+/* ===== Patch 1.1.7: Friends (one bot friend, live activity feed) ===== */
+const FRIEND={name:'Kai Mendez', first:'Kai', rank:'Behemoth', lvl:15, init:'KM'};
+const FR_EVENTS=[
+  ['🏋','logged Bench Press 90 kg × 5'],['🏃','finished a 5.2 km run'],['🔥','is on a 12-day streak'],
+  ['⭐','completed the “100 Pull-ups” challenge'],['📈','leveled up to LV 15'],['🥇','set a new Squat PR: 140 kg'],
+  ['🤸','unlocked skill: Muscle-up'],['💪','logged Deadlift 180 kg × 3'],['🏅','climbed to #4 Worldwide'],['🧊','logged an ice-bath recovery']
+];
+let frFeed=[]; let FR_TIMER=null;
+function frRandEvent(){ const e=FR_EVENTS[Math.floor(Math.random()*FR_EVENTS.length)]; return {ico:e[0], txt:e[1], t:Date.now()-Math.floor(Math.random()*120000)}; }
+function frTimeAgo(t){ const s=Math.max(0,Math.floor((Date.now()-t)/1000)); if(s<60) return s+'s ago'; const m=Math.floor(s/60); if(m<60) return m+'m ago'; return Math.floor(m/60)+'h ago'; }
+function openFriends(){ if(!frFeed.length){ frFeed=[frRandEvent(),frRandEvent(),frRandEvent()]; frFeed.sort((a,b)=>b.t-a.t); } renderFriends(); closeMainMenu(); document.getElementById('friendsModal').classList.add('open'); startFriendLive(); }
+function closeFriends(){ document.getElementById('friendsModal').classList.remove('open'); stopFriendLive(); }
+function startFriendLive(){ stopFriendLive(); FR_TIMER=setInterval(function(){ frFeed.unshift({ico:FR_EVENTS[Math.floor(Math.random()*FR_EVENTS.length)][0], txt:FR_EVENTS[Math.floor(Math.random()*FR_EVENTS.length)][1], t:Date.now()}); if(frFeed.length>8) frFeed.pop(); const fb=document.getElementById('friendsBody'); if(!fb) return; if(fb.querySelector('.fr-feed')) renderFriendProfile(); else renderFriends(); }, 6000); }
+function stopFriendLive(){ if(FR_TIMER){ clearInterval(FR_TIMER); FR_TIMER=null; } }
+function renderFriends(){
+  const fb=document.getElementById('friendsBody'); if(!fb) return;
+  fb.innerHTML='<div class="fr-list"><div class="fr-card" onclick="renderFriendProfile()">'+
+    '<div class="fr-av">'+FRIEND.init+'<span class="fr-live"></span></div>'+
+    '<div class="fr-main"><div class="fr-name">'+esc(FRIEND.name)+'</div><div class="fr-sub">LV '+FRIEND.lvl+' · '+esc(FRIEND.rank)+' · '+esc(FRIEND.first+' '+(frFeed[0]?frFeed[0].txt:'is online'))+'</div></div>'+
+  '</div></div>';
+}
+function renderFriendProfile(){
+  const fb=document.getElementById('friendsBody'); if(!fb) return;
+  fb.innerHTML='<button class="fr-back" onclick="renderFriends()">‹ Friends</button>'+
+    '<div class="fr-card" style="cursor:default"><div class="fr-av">'+FRIEND.init+'<span class="fr-live"></span></div><div class="fr-main"><div class="fr-name">'+esc(FRIEND.name)+'</div><div class="fr-sub">LV '+FRIEND.lvl+' · '+esc(FRIEND.rank)+' · Online now</div></div></div>'+
+    '<div class="mm-seclabel">Live activity</div>'+
+    '<div class="fr-feed">'+frFeed.map(function(e){ return '<div class="fr-ev"><span class="fe-ico">'+e.ico+'</span><div class="fe-body"><div class="fe-txt">'+esc(FRIEND.first)+' '+esc(e.txt)+'</div><div class="fe-time">'+frTimeAgo(e.t)+'</div></div></div>'; }).join('')+'</div>';
+}
+
+/* ===== Patch 1.1.7: cover photo hold-to-adjust position ===== */
+function attachCoverAdjust(){
+  const cov=document.querySelector('#idCard .idc-cover2'); if(!cov) return;
+  const p=db.profile||{}; if(!p.cover) return;
+  let holdT=null, adjusting=false, sx=0, sy=0, start={x:50,y:40}, curPos=p.coverPos||'50% 40%';
+  function parsePos(s){ const m=String(s).split(' '); return {x:parseFloat(m[0])||50, y:parseFloat(m[1])||40}; }
+  cov.addEventListener('pointerdown', function(e){
+    holdT=setTimeout(function(){ adjusting=true; cov.classList.add('adjusting'); start=parsePos(curPos); sx=e.clientX; sy=e.clientY; try{cov.setPointerCapture(e.pointerId);}catch(_){ } if(navigator.vibrate) navigator.vibrate(20); }, 420);
+  });
+  cov.addEventListener('pointermove', function(e){
+    if(!adjusting) return; e.preventDefault();
+    const nx=Math.max(0,Math.min(100, start.x-(e.clientX-sx)/3));
+    const ny=Math.max(0,Math.min(100, start.y-(e.clientY-sy)/3));
+    curPos=nx.toFixed(0)+'% '+ny.toFixed(0)+'%'; cov.style.backgroundPosition=curPos;
+  });
+  function endAdj(e){ if(holdT){ clearTimeout(holdT); holdT=null; } if(adjusting){ adjusting=false; cov.classList.remove('adjusting'); db.profile=db.profile||{}; db.profile.coverPos=curPos; save(); if(window.WeaponSync) WeaponSync.pushProfile&&WeaponSync.pushProfile(); toast('Cover position saved'); } }
+  cov.addEventListener('pointerup', endAdj);
+  cov.addEventListener('pointercancel', endAdj);
+  cov.addEventListener('pointerleave', function(){ if(holdT&&!adjusting){ clearTimeout(holdT); holdT=null; } });
+}
 
 /* ===== Patch 1.1.5: dev-mode drag-to-resize handles (replaces size sliders) ===== */
 function attachDevHandle(el, opt){
@@ -1984,9 +2165,7 @@ function devRefreshHandles(){
   attachDevHandle(document.querySelector('header .brand'), { axis:'x', min:0.8, max:2.6, step:0.006,
     get:function(){ return db.dev.brand||1.15; },
     set:function(v){ db.dev.brand=Math.round(v*100)/100; applyDev(); } });
-  attachDevHandle(document.querySelector('#idCard .idc-avatar'), { axis:'x', min:54, max:160, step:1,
-    get:function(){ return db.dev.av||82; },
-    set:function(v){ db.dev.av=Math.round(v); applyDev(); } });
+  /* Patch 1.1.7: avatar size is now fixed — no drag handle */
   attachDevHandle(document.querySelector('#idCard .idc-spotify'), { axis:'y', min:60, max:200, step:1,
     get:function(){ return db.dev.sp||80; },
     set:function(v){ db.dev.sp=Math.round(v); applyDev(); } });
