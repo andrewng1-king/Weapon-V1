@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="WEAPON">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;700;900&family=Michroma&family=Rajdhani:wght@400;500;600&family=Chakra+Petch:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Kanit:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;700;900&family=Michroma&family=Rajdhani:wght@400;500;600&family=Chakra+Petch:wght@500;600&display=swap" rel="stylesheet">
 <style>
   @font-face{
     font-family:'Anurati';
@@ -24,13 +24,13 @@
     --bg-grad:radial-gradient(135% 100% at 50% -8%, #15171f 0%, #0c0e13 38%, #07080b 72%, #050507 100%);
     --surface-rgb:28,26,32; --surface-a:.16; --bright:1; --surface:rgba(var(--surface-rgb),var(--surface-a)); --surface2:#211e24; --border:rgba(255,255,255,.09);
     --text:#f3efec; --muted:#9a938e;
-    --accent:#cc3551; --accent-dim:#9e2740; --accent-rgb:204,53,81;
+    --accent:#15786A; --accent-dim:#0F5247; --accent-rgb:21,120,106; /* Patch 1.1.4: midnight green (was pink #cc3551) */
     --green:#3ddc97; --gold:#d9b25f;
     --glass-sh:0 18px 44px -12px rgba(0,0,0,.78),0 5px 16px -4px rgba(0,0,0,.55);
     --glass-hi:inset 0 1px 0 rgba(255,255,255,.10);
     --title:'Anurati',sans-serif;
     --display:'Astera','Orbitron','Segoe UI',sans-serif;
-    --sans:'Kanit','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --sans:'Archivo','Kanit','Segoe UI',Roboto,Helvetica,Arial,sans-serif; /* Patch 1.1.4: normal-text font (headings/titles/big numbers keep their own fonts) */
   }
   body[data-mode="endurance"]{
     --bg:#1b1822;
@@ -618,7 +618,9 @@ body{padding-bottom:calc(180px + env(safe-area-inset-bottom));}
 /* ---- 10) flat-black glassy boxes (keep red corner brackets) ---- */
 :root{ --surface-rgb:8,9,12; --surface-a:.55; --surface2:#15131a; }
 body[data-mode="endurance"]{ --surface-rgb:13,12,18; --surface2:#16131d; }
-.card,.ex,.idcard,.goal-stat{ background:rgba(var(--surface-rgb),var(--surface-a)); -webkit-backdrop-filter:blur(20px) saturate(130%); backdrop-filter:blur(20px) saturate(130%); }
+/* Patch 1.1.4: simple flat-black box fill (no blur/gradient). Glass fill kept as .glassbox for later use. */
+.card,.ex,.idcard,.goal-stat{ background:#0d0d10; -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:0 8px 22px -10px rgba(0,0,0,.7); }
+.glassbox{ background:rgba(var(--surface-rgb),var(--surface-a))!important; -webkit-backdrop-filter:blur(20px) saturate(130%)!important; backdrop-filter:blur(20px) saturate(130%)!important; }
 .idc-cover2{ background:#0c0d11; }
 .idc-cover2.nofill{ background:linear-gradient(120deg, rgba(var(--accent-rgb),.32), rgba(255,255,255,.02)); }
 
@@ -643,10 +645,18 @@ header .brand{ font-size:var(--brand-size,1.4rem); }
 .idc-avatar .av-img{ border:3px solid var(--bg); font-size:1.5rem; }
 /* small rank emblem just below avatar centre */
 .idc-rankico{ width:30px; height:34px; margin-top:-3px; position:relative; z-index:3; filter:drop-shadow(0 2px 6px rgba(0,0,0,.65)); }
-/* name below avatar, centered */
-.idc-namewrap{ align-self:center; text-align:center; margin-top:7px; padding-bottom:0; }
+/* name below avatar, centered — Patch 1.1.4: sit closer to the avatar */
+.idc-namewrap{ align-self:center; text-align:center; margin-top:1px; padding-bottom:0; }
 .idc-name{ text-align:center; }
-.idc-follow{ align-self:center; margin-top:11px; }
+/* Patch 1.1.4: Follow + Message + Invite action row */
+.idc-actions{ display:flex; align-items:center; justify-content:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.idc-actions .idc-follow{ align-self:auto; margin-top:0; }
+.idc-act{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,.20); border-radius:999px; padding:7px 16px; font-family:var(--sans); font-weight:700; font-size:.72rem; letter-spacing:.3px; cursor:pointer; transition:background .15s, border-color .15s; }
+.idc-act:active{ background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.35); }
+/* Patch 1.1.4: tappable avatar with camera badge */
+.idc-avatar{ cursor:pointer; }
+.idc-avatar .av-edit{ position:absolute; right:-3px; bottom:-3px; width:24px; height:24px; border-radius:50%; background:var(--accent); border:2px solid var(--bg); display:flex; align-items:center; justify-content:center; z-index:5; box-shadow:0 2px 8px rgba(0,0,0,.55); }
+.idc-avatar .av-edit svg{ width:12px; height:12px; color:#fff; display:block; }
 /* bio centered, bigger, closer */
 .idc-bio{ text-align:center; font-size:.95rem; margin-top:9px; color:#e7e2e5; }
 /* spotify player size — dev */
@@ -989,6 +999,17 @@ function attr(s){ return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function slug(s){ return s.replace(/[^a-z0-9]/gi,'_'); }
 function round1(x){ return Math.round(x*10)/10; }
+/* Patch 1.1.4: abbreviate numbers >=1000. 5318->5k3, 5000->5k, 12480->12k, 1.3M->1M3. Decimal shown only when leading number is a single digit. */
+function fmtK(n){
+  n=Number(n); if(!isFinite(n)) return '0';
+  const neg=n<0; n=Math.abs(n);
+  function brk(v,suf){ const i=Math.floor(v); const d=Math.floor(v*10)%10; return (i>=10? i+suf : i+suf+(d?d:'')); }
+  let out;
+  if(n>=1e6) out=brk(n/1e6,'M');
+  else if(n>=1000) out=brk(n/1000,'k');
+  else out=String(Math.round(n));
+  return (neg?'-':'')+out;
+}
 function roman(n){ n=+n||0; const m=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let s=''; for(const [v,sym] of m){ while(n>=v){ s+=sym; n-=v; } } return s||'0'; }
 
 /* ================= catalogue ================= */
@@ -1244,7 +1265,7 @@ function renderHistory(){
     const list=S().logs.filter(l=>l.date===d).slice().reverse();
     const vol=list.reduce((a,l)=>a+l.kg*l.reps*l.sets,0);
     const groups=[...new Set(list.map(l=>groupOf(l.ex)).filter(Boolean))].join(' · ');
-    return `<div class="session-date">${fmtDate(d)}<small>${groups}${vol?` · ${Math.round(vol).toLocaleString()} kg`:''}</small></div>`+
+    return `<div class="session-date">${fmtDate(d)}<small>${groups}${vol?` · ${fmtK(vol)} kg`:''}</small></div>`+
       list.map(l=>`<div class="hentry"><div><div><b>${esc(l.ex)}</b></div><div class="small">${l.reps} reps @ <b>${l.kg} kg</b></div></div>
         <button class="del" onclick="delLog('${l.id}')">✕</button></div>`).join('');
   }).join('');
@@ -1318,11 +1339,11 @@ function renderGoals(){
       wk.map((d,i)=>{ const tr=S().logs.some(l=>l.date===d); const td=d===today; return '<div class="goal-day '+(tr?'trained':'')+' '+(td?'today':'')+'" style="cursor:pointer" onclick="event.stopPropagation();openCalendar(\''+d+'\')"><div class="gd-dow">'+dows[i]+'</div><div class="gd-num">'+(+d.slice(8))+'</div></div>'; }).join('')+
     '</div></div>'+
     '<div class="card"><h2>Goal progress</h2><div class="hint">Calories burned this week</div>'+
-      '<div class="gauge-wrap"><canvas class="rep" id="goalGauge" style="height:170px"></canvas><div class="gauge-center"><div class="gauge-val">'+Math.round(weekCal).toLocaleString()+'</div><div class="gauge-lbl">of '+target.toLocaleString()+' kcal</div></div></div>'+
+      '<div class="gauge-wrap"><canvas class="rep" id="goalGauge" style="height:170px"></canvas><div class="gauge-center"><div class="gauge-val">'+fmtK(weekCal)+'</div><div class="gauge-lbl">of '+fmtK(target)+' kcal</div></div></div>'+
       '<div class="goal-target">Weekly target <input type="number" id="goalTargetInput" value="'+target+'" onchange="setGoalTarget(this.value)"> kcal</div>'+
     '</div>'+
     '<div class="goal-grid">'+
-      goalStat('flame',Math.round(weekCal).toLocaleString(),'kcal this week')+
+      goalStat('flame',fmtK(weekCal),'kcal this week')+
       goalStat('cal',daysLifted,'days lifted')+
       goalStat('weight',(db.bw||75)+' kg','bodyweight')+
       goalStat('foot','\u2014','steps · soon')+
@@ -1528,7 +1549,7 @@ function renderCalDetail(ds){
   const vol=list.reduce((a,l)=>a+l.kg*l.reps*(l.sets||3),0);
   const cal=list.reduce((a,l)=>a+calForLog(l),0);
   const groups=[...new Set(list.map(l=>groupOf(l.ex)).filter(Boolean))].join(' · ');
-  det.innerHTML='<div class="day-sum">'+fmtDate(ds)+' — '+(groups||'—')+' · '+Math.round(vol).toLocaleString()+' kg · '+Math.round(cal)+' kcal · '+list.length+' lifts</div>'+
+  det.innerHTML='<div class="day-sum">'+fmtDate(ds)+' — '+(groups||'—')+' · '+fmtK(vol)+' kg · '+Math.round(cal)+' kcal · '+list.length+' lifts</div>'+
     list.map(l=>'<div class="rec-row"><span class="rx-ex">'+esc(l.ex)+'</span><span class="rx-meta">'+l.reps+' reps @ '+l.kg+' kg</span></div>').join('');
 }
 
@@ -1570,7 +1591,7 @@ function showRankInfo(L){
   document.getElementById('ranksList').innerHTML =
     `<div class="rankinfo"><div class="ri-emblem">${emblemForLevel(L)}<div class="ri-lvl">${roman(L)}</div></div>`+
     `<div class="ri-name">${name}</div>`+
-    `<div class="ri-meta">LEVEL ${roman(L)} &middot; ${xpToReach(L).toLocaleString()} XP to reach</div>`+
+    `<div class="ri-meta">LEVEL ${roman(L)} &middot; ${fmtK(xpToReach(L))} XP to reach</div>`+
     `<button class="ri-back blurlift" onclick="openRanks()">&larr; All ranks</button></div>`;
 }
 
@@ -1591,7 +1612,7 @@ function renderDayProgress(){
   const list=S().logs.filter(l=>l.date===dayState.date);
   const vol=list.reduce((a,l)=>a+l.kg*l.reps*l.sets,0);
   const groups=[...new Set(list.map(l=>groupOf(l.ex)).filter(Boolean))].join(' · ');
-  det.innerHTML=`<div class="day-sum">${groups||'—'} · ${Math.round(vol).toLocaleString()} kg · ${list.length} lifts</div>`+
+  det.innerHTML=`<div class="day-sum">${groups||'—'} · ${fmtK(vol)} kg · ${list.length} lifts</div>`+
     list.map(l=>`<div class="rec-row"><span class="rx-ex">${esc(l.ex)}</span><span class="rx-meta">${l.reps} reps @ ${l.kg} kg</span></div>`).join('');
 }
 document.addEventListener('click',(e)=>{ const dp=document.querySelector('.daypick'); if(dp && !dp.contains(e.target)) closeDayMenu(); });
@@ -1655,12 +1676,16 @@ function renderIDCard(){
     '<div class="idc-cover2'+(p.cover?'':' nofill')+'"'+cover+'></div>'+
     '<div class="idc-body">'+
       '<div class="idc-headrow">'+
-        '<div class="idc-avwrap"><div class="idc-avatar"><div class="av-ring"></div><div class="av-ticks"></div><div class="av-img">'+av+'</div></div><div class="idc-rankico">'+rankIco+'</div></div>'+
+        '<div class="idc-avwrap"><div class="idc-avatar" onclick="pickPhoto()" title="Change photo"><div class="av-ring"></div><div class="av-ticks"></div><div class="av-img">'+av+'</div><span class="av-edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></span></div><div class="idc-rankico">'+rankIco+'</div></div>'+
         '<div class="idc-namewrap"><div class="idc-name">'+esc(name)+'</div></div>'+
-        '<button class="idc-follow" type="button" onclick="toast(\'Following — coming soon\')">Follow</button>'+
+        '<div class="idc-actions">'+
+          '<button class="idc-follow" type="button" onclick="toast(\'Following — coming soon\')">Follow</button>'+
+          '<button class="idc-act" type="button" onclick="toast(\'Message — coming soon\')">Message</button>'+
+          '<button class="idc-act" type="button" onclick="toast(\'Invite — coming soon\')">Invite</button>'+
+        '</div>'+
       '</div>'+
       (p.bio?('<div class="idc-bio">'+esc(p.bio)+'</div>'):'')+
-      '<div class="idc-stats2"><div><b>'+daysLifted+'</b><span>Days lifted</span></div><div><b>'+followers+'</b><span>Followers</span></div><div><b>'+challenges+'</b><span>Challenges</span></div></div>'+
+      '<div class="idc-stats2"><div><b>'+fmtK(daysLifted)+'</b><span>Days lifted</span></div><div><b>'+fmtK(followers)+'</b><span>Followers</span></div><div><b>'+fmtK(challenges)+'</b><span>Challenges</span></div></div>'+
       '<div class="idc-spotify">'+spotifyEmbed(p.spotify)+'</div>'+
     '</div>';
 }
@@ -1668,6 +1693,8 @@ function renderIDCard(){
 /* ================= profile photos ================= */
 function readImg(input, cb){ const f=input.files&&input.files[0]; if(!f) return; const r=new FileReader(); r.onload=function(){ const img=new Image(); img.onload=function(){ const max=480; let w=img.width, h=img.height; if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } } const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); let out; try{ out=cv.toDataURL('image/jpeg',0.82); }catch(e){ out=r.result; } cb(out); }; img.src=r.result; }; r.readAsDataURL(f); }
 function setPhoto(input){ readImg(input,function(d){ db.profile.photo=d; save(); if(window.WeaponSync) WeaponSync.pushProfile(); renderIDCard(); toast('Photo updated'); }); }
+/* Patch 1.1.4: tap the ID-card avatar to change the photo (reuses the settings photo input). */
+function pickPhoto(){ const i=document.getElementById('pfPhoto'); if(i) i.click(); }
 function setCover(input){ readImg(input,function(d){ db.profile.cover=d; save(); if(window.WeaponSync) WeaponSync.pushProfile(); renderIDCard(); toast('Cover updated'); }); }
 
 /* settings opened from gear button via openSettings */
