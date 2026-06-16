@@ -4,17 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0b">
-<title>WEAPON — Strength Tracker</title>
+<title>ATHLETE — Strength Tracker</title>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="WEAPON">
+<meta name="apple-mobile-web-app-title" content="ATHLETE">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
 <style>
 /* =====================================================================
    WEAPON — Premium blackout (Direction A: refined, game layer kept)
@@ -42,6 +42,8 @@
   --hair:rgba(255,255,255,.14);
   --nav-bg:rgba(10,10,11,.92);
   --grid:rgba(255,255,255,.10);
+  --step-bg:#000;
+  --step-ink:#e9e7e3;
   --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --num:'Archivo','Inter',sans-serif;
   --display:'Inter',system-ui,sans-serif;
@@ -63,10 +65,14 @@ input,button,select{font-family:inherit;}
 header{position:relative;max-width:var(--app);margin:0 auto;display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 18px 8px;}
 .hdr-menu{width:36px;height:36px;flex-shrink:0;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .hdr-menu svg{width:18px;height:18px;}
-.brand{font-weight:700;font-size:1.35rem;letter-spacing:.04em;color:var(--ink);line-height:1;}
-.brand i{font-style:normal;color:var(--accent);}
 .brand-wrap{flex:1;min-width:0;}
-.sub{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-top:4px;}
+/* ===== ATHLETE / WEAPON switchable logo ===== */
+.brand-logo{display:inline-flex;align-items:center;cursor:pointer;-webkit-user-select:none;user-select:none;line-height:1;font-size:1.65rem;height:30px;}
+.brand-logo .bl-part{font-family:'Archivo',var(--sans);font-weight:800;font-style:italic;letter-spacing:-.045em;color:var(--ink);transform:skewX(-6deg);text-transform:uppercase;}
+.brand-logo .bl-bolt{display:inline-flex;align-items:center;color:var(--gold);margin:0 -.02em;}
+.brand-logo .bl-bolt svg{width:.6em;height:1.08em;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));}
+.brand-logo .bl-bolt svg path{fill:currentColor;}
+.brand-logo:active{transform:scale(.97);}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;height:34px;background:var(--panel);flex-shrink:0;}
 .seg button{display:flex;align-items:center;padding:0 13px;font-size:.72rem;font-weight:600;color:var(--faint);background:none;border:none;cursor:pointer;}
 .seg button.on{background:var(--panel-2);color:var(--ink);}
@@ -115,11 +121,11 @@ main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 .pill-done{font-size:.7rem;font-weight:600;color:var(--accent);letter-spacing:.04em;margin-left:auto;flex-shrink:0;}
 
 .controls{display:flex;gap:10px;margin-top:14px;}
-.stepper{flex:1;display:flex;align-items:center;background:#000;border:1px solid var(--line);border-radius:13px;overflow:hidden;min-height:54px;}
-.stepper button{width:44px;align-self:stretch;background:none;border:none;color:var(--ink);font-size:1.4rem;font-weight:500;cursor:pointer;}
+.stepper{flex:1;display:flex;align-items:center;background:var(--step-bg);border:1px solid var(--line);border-radius:13px;overflow:hidden;min-height:54px;}
+.stepper button{width:44px;align-self:stretch;background:none;border:none;color:var(--step-ink);font-size:1.4rem;font-weight:500;cursor:pointer;}
 .stepper button:active{background:var(--line);}
 .stepper .val{flex:1;text-align:center;min-width:0;}
-.stepper .val input{width:100%;background:none;border:none;color:var(--ink);font-family:var(--num);font-weight:700;font-size:1.15rem;text-align:center;outline:none;}
+.stepper .val input{width:100%;background:none;border:none;color:var(--step-ink);font-family:var(--num);font-weight:700;font-size:1.15rem;text-align:center;outline:none;}
 .stepper .val .unit{display:block;font-size:.56rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:-2px;}
 .logbtn{flex-shrink:0;min-width:64px;padding:0 20px;border-radius:13px;border:1px solid var(--accent-dim);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.9rem;cursor:pointer;min-height:54px;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .1s,background .15s,color .15s;}
 .logbtn svg{width:20px;height:20px;}
@@ -238,6 +244,12 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 .p2-ach .pr{position:absolute;left:8px;right:8px;bottom:7px;height:3px;border-radius:9px;background:var(--track);overflow:hidden;}
 .p2-ach .pr i{display:block;height:100%;background:var(--accent);}
 
+/* profile title box (header banner) */
+.p-titlebox{background:linear-gradient(135deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:18px;padding:16px 18px;margin:6px 0 14px;}
+.ptb-eyebrow{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700;}
+.ptb-name{font-family:var(--display);font-weight:700;font-size:1.5rem;letter-spacing:-.02em;color:var(--ink);margin-top:4px;line-height:1.1;}
+.ptb-rank small{font-size:.78rem;color:var(--muted);font-weight:600;}
+
 /* ID card */
 .idcard{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--panel);margin-bottom:12px;}
 .idc-setup{text-align:center;padding:26px 16px;color:var(--accent);font-weight:600;font-size:.92rem;cursor:pointer;}
@@ -278,6 +290,39 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 .dev-slider input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .dev-slider .dv{flex:0 0 120px;text-align:right;font-size:.72rem;color:var(--ink);font-weight:700;}
 .dev-reset{width:100%;background:var(--panel-2);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:12px;font-size:.82rem;cursor:pointer;margin-top:4px;}
+
+/* ===== home dashboard ===== */
+.home-hero{background:linear-gradient(150deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:20px;padding:20px;margin:8px 0 12px;}
+.hh-date{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:600;}
+.hh-greet{font-family:var(--display);font-weight:700;font-size:1.6rem;letter-spacing:-.02em;color:var(--ink);margin:6px 0 10px;line-height:1.1;}
+.hh-rank{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted);font-weight:600;}
+.hh-rank .hh-lv{font-family:var(--num);font-weight:700;font-size:.72rem;color:var(--accent-ink);background:var(--accent);padding:2px 8px;border-radius:99px;}
+.hh-xpbar{height:6px;border-radius:99px;background:var(--track);overflow:hidden;margin-top:14px;}
+.hh-xpbar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1);}
+.hh-xptext{font-size:.72rem;color:var(--faint);margin-top:7px;}
+.home-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.hs-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 10px;text-align:center;}
+.hs-card b{display:block;font-family:var(--num);font-weight:700;font-size:1.5rem;color:var(--ink);line-height:1;}
+.hs-card span{display:block;font-size:.64rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;font-weight:600;}
+.home-today .ht-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.ht-lab{font-family:var(--display);font-weight:600;font-size:1rem;color:var(--ink);}
+.ht-sub{font-size:.78rem;color:var(--faint);margin-top:2px;}
+.ht-num{font-family:var(--num);font-weight:700;font-size:2rem;color:var(--accent);line-height:1;}
+.ht-cta{width:100%;margin-top:16px;border:none;border-radius:13px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.92rem;padding:14px;cursor:pointer;transition:transform .1s;}
+.ht-cta:active{transform:scale(.98);}
+
+/* ===== speed dial (quick actions) ===== */
+.speeddial{position:fixed;left:max(18px,calc(50% - min(var(--app),100%)/2 + 18px));bottom:calc(86px + env(safe-area-inset-bottom));z-index:45;display:flex;flex-direction:column;align-items:flex-start;gap:11px;}
+.sd-options{display:flex;flex-direction:column;align-items:flex-start;gap:10px;opacity:0;pointer-events:none;transform:translateY(10px) scale(.95);transform-origin:bottom left;transition:opacity .2s ease,transform .2s ease;}
+.speeddial.open .sd-options{opacity:1;pointer-events:auto;transform:none;}
+.sd-opt{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:99px;padding:7px 16px 7px 7px;color:var(--ink);font-size:.82rem;font-weight:600;cursor:pointer;box-shadow:0 10px 26px -10px rgba(0,0,0,.7);white-space:nowrap;}
+.sd-opt .sd-ic{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.sd-opt .sd-ic svg{width:17px;height:17px;}
+.sd-opt:active{transform:scale(.97);}
+.sd-fab{width:48px;height:48px;border-radius:50%;background:#000;border:1px solid rgba(255,255,255,.16);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px -8px rgba(0,0,0,.7);transition:transform .15s,box-shadow .2s;}
+.sd-fab .sd-sign{font-size:1.55rem;font-weight:300;line-height:1;}
+.sd-fab:active{transform:scale(.93);}
+.sd-fab.recording{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.55),0 10px 24px -8px rgba(0,0,0,.7);}
 
 /* ===== bottom nav ===== */
 .bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(var(--app),100%);background:var(--nav-bg);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;align-items:center;z-index:40;padding:8px 12px calc(8px + env(safe-area-inset-bottom));}
@@ -425,8 +470,10 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 
 /* drag & drop exercise reorder */
 .ex{position:relative;}
-.ex.dragging{opacity:.55;}
+.ex.dragging{opacity:.28;}
 .ex.drag-over{box-shadow:0 -3px 0 0 var(--accent);}
+.drag-ghost{position:fixed;z-index:300;margin:0!important;pointer-events:none;opacity:.97;transform:scale(1.03) rotate(-.6deg);border-color:var(--accent)!important;box-shadow:0 22px 50px -12px rgba(0,0,0,.7),0 0 0 1px rgba(var(--accent-rgb),.4);transition:none;}
+body.dragging-active{-webkit-user-select:none;user-select:none;}
 .ex-grip{flex:0 0 auto;width:28px;display:flex;align-items:center;justify-content:center;color:var(--faint);cursor:grab;touch-action:none;margin:-4px -4px -4px -6px;align-self:stretch;}
 .ex-grip svg{width:18px;height:18px;pointer-events:none;}
 .ex-grip:active{cursor:grabbing;}
@@ -443,8 +490,7 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 <header>
   <button class="hdr-menu" id="menuBtn" onclick="openMainMenu()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   <div class="brand-wrap">
-    <div class="brand">WEAP<i>O</i>N</div>
-    <div class="sub" id="headStats">Worldbreaker</div>
+    <div class="brand-logo" id="brand" onclick="cycleLogo()" role="button" tabindex="0" aria-label="Switch logo"></div>
   </div>
   <div class="seg" id="modeToggle">
     <button class="on" id="segStr" onclick="setMode('strength')">Strength</button>
@@ -474,6 +520,9 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 
 <!-- GOALS -->
 <section class="tab" id="tab-goals"><main><div id="goalView"></div></main></section>
+
+<!-- HOME -->
+<section class="tab" id="tab-home"><main><div id="homeView"></div></main></section>
 
 <!-- REPORT (history + report) -->
 <section class="tab" id="tab-report">
@@ -507,7 +556,11 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 <!-- AVATAR / PROFILE -->
 <section class="tab" id="tab-avatar">
   <main>
-    <div class="sectionTitle">Profile <small id="avRankSmall"></small></div>
+    <div class="p-titlebox">
+      <div class="ptb-eyebrow">Profile</div>
+      <div class="ptb-name" id="ptbName">You</div>
+      <div class="ptb-rank"><small id="avRankSmall"></small></div>
+    </div>
     <div class="idcard" id="idCard"></div>
 
     <div class="card av-hero">
@@ -562,6 +615,25 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
   </main>
 </section>
 
+<!-- speed dial (quick actions) -->
+<div class="speeddial" id="speedDial">
+  <div class="sd-options" id="sdOptions">
+    <button class="sd-opt" type="button" onclick="sdAction('record')">
+      <span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/></svg></span>
+      <span class="sd-lab">Record</span>
+    </button>
+    <button class="sd-opt" type="button" onclick="sdAction('challenges')">
+      <span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0z"/><path d="M5 4H3v1.5A3.5 3.5 0 0 0 6.5 9M19 4h2v1.5A3.5 3.5 0 0 1 17.5 9M12 12v3.5M9 20h6M9.5 20l.6-4.5h3.8l.6 4.5"/></svg></span>
+      <span class="sd-lab">Challenges</span>
+    </button>
+    <button class="sd-opt" type="button" onclick="sdAction('friends')">
+      <span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16.5 5.2a3 3 0 0 1 0 5.6M17.5 14a5.5 5.5 0 0 1 3 4.5"/></svg></span>
+      <span class="sd-lab">Friends</span>
+    </button>
+  </div>
+  <button class="sd-fab" id="sdFab" type="button" onclick="toggleSpeedDial()" aria-label="Quick actions"><span class="sd-sign">+</span></button>
+</div>
+
 <!-- bottom nav -->
 <div class="bottomnav">
   <button class="active" data-t="workout">
@@ -572,7 +644,10 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
     <span class="nav-label">Goals</span>
   </button>
-  <button class="rec-btn" id="recBtn" onclick="toggleRecord()" aria-label="Record session"><span class="rec-dot"></span></button>
+  <button data-t="home">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3.5l9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-6h5v6"/></svg>
+    <span class="nav-label">Home</span>
+  </button>
   <button data-t="report">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20V4M4 20h16M8 20v-5M12 20v-9M16 20v-3M20 20V7"/></svg>
     <span class="nav-label">Report</span>
@@ -756,8 +831,6 @@ function S(){ return db[db.mode]; }
    Hexes are mid-toned so they read on both dark and light surfaces. */
 const ACCENT_SET=[
   {name:'Gold',   hex:'#c2a878', rgb:'194,168,120', dim:'#7d6c47', ink:'#15120b'},
-  {name:'Green',  hex:'#43946b', rgb:'67,148,107',  dim:'#235347', ink:'#f3fbf6'},
-  {name:'Orange', hex:'#e85002', rgb:'232,80,20',   dim:'#c10801', ink:'#1a0a02'},
 ];
 function curAccent(){ const i=(db.dev&&db.dev.color)||0; return ACCENT_SET[i]||ACCENT_SET[0]; }
 function accent(){ return curAccent().hex; }
@@ -771,10 +844,12 @@ function applyColors(){ const a=curAccent(); const s=document.body.style;
 const THEMES={
   dark:{ page:'#0a0a0b', panel:'#0e0f11', panel2:'#141517', tx:'#e9e7e3', muted:'#9b9a96', faint:'#6a6a67',
     line:'rgba(255,255,255,.07)', line2:'rgba(255,255,255,.04)', track:'rgba(255,255,255,.08)',
-    hair:'rgba(255,255,255,.14)', nav:'rgba(10,10,11,.92)', grid:'rgba(255,255,255,.10)' },
+    hair:'rgba(255,255,255,.14)', nav:'rgba(10,10,11,.92)', grid:'rgba(255,255,255,.10)',
+    step:'#000000', stepInk:'#e9e7e3' },
   light:{ page:'#ece9e3', panel:'#f6f4ef', panel2:'#ffffff', tx:'#1b1a17', muted:'#5f5d57', faint:'#8b8881',
     line:'rgba(0,0,0,.10)', line2:'rgba(0,0,0,.05)', track:'rgba(0,0,0,.09)',
-    hair:'rgba(0,0,0,.16)', nav:'rgba(246,244,239,.92)', grid:'rgba(0,0,0,.10)' },
+    hair:'rgba(0,0,0,.16)', nav:'rgba(246,244,239,.92)', grid:'rgba(0,0,0,.10)',
+    step:'#d4cfc4', stepInk:'#15140f' },
 };
 function curTheme(){ return (db.theme==='light')?'light':'dark'; }
 function applyTheme(){ const t=THEMES[curTheme()]; const s=document.body.style;
@@ -784,6 +859,7 @@ function applyTheme(){ const t=THEMES[curTheme()]; const s=document.body.style;
   s.setProperty('--line',t.line); s.setProperty('--line-2',t.line2);
   s.setProperty('--track',t.track); s.setProperty('--hair',t.hair); s.setProperty('--nav-bg',t.nav);
   s.setProperty('--grid',t.grid);
+  s.setProperty('--step-bg',t.step); s.setProperty('--step-ink',t.stepInk);
   const tc=document.querySelector('meta[name=theme-color]'); if(tc) tc.setAttribute('content',t.page); }
 function toggleTheme(){ db.theme=(curTheme()==='light')?'dark':'light'; save(); applyTheme();
   syncThemeUI(); renderActive(); toast(curTheme()==='light'?'Light mode':'Dark mode'); }
@@ -926,7 +1002,7 @@ function prevLog(ex){ const l=logsFor(ex); return l.length>1?l[l.length-2]:null;
 function getVals(ex){ if(!vals[ex.n]){ const last=lastLog(ex.n); vals[ex.n]={kg:last?last.kg:ex.start, reps:last?last.reps:8}; } return vals[ex.n]; }
 
 /* ================= nav + mode ================= */
-const TAB_ORDER=['workout','goals','report','avatar'];
+const TAB_ORDER=['workout','goals','home','report','avatar'];
 function switchTab(t){
   const btn=document.querySelector('.bottomnav button[data-t="'+t+'"]'); if(!btn) return;
   document.querySelectorAll('.bottomnav button[data-t]').forEach(x=>x.classList.remove('active'));
@@ -938,34 +1014,12 @@ function switchTab(t){
 }
 document.querySelectorAll('.bottomnav button[data-t]').forEach(b=>{ b.onclick=()=>switchTab(b.dataset.t); });
 function activeTab(){ const a=document.querySelector('.bottomnav button[data-t].active'); return a?a.dataset.t:'workout'; }
-/* ---- swipe between tabs (conservative) ---- */
+/* ---- shared overlay guard (used by pull-to-refresh) ---- */
 function anyOverlayOpen(){
   if(document.querySelector('.modal-bg.open')) return true;
   if(document.getElementById('mainMenuBg')?.classList.contains('open')) return true;
   if(document.getElementById('recFull')?.classList.contains('open')) return true;
   return false;
-}
-function initSwipeNav(){
-  let sx=0, sy=0, tracking=false, t0=0;
-  const NOSWIPE='input,textarea,select,canvas,.stepper,.dev-slider,.group-menu,.day-menu,.wk-searchbar,.ex-grip,.idc-cover,.seg,.rep-switch';
-  document.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1 || anyOverlayOpen()){ tracking=false; return; }
-    if(e.target.closest(NOSWIPE)){ tracking=false; return; }
-    const t=e.touches[0]; sx=t.clientX; sy=t.clientY; t0=Date.now(); tracking=true;
-  },{passive:true});
-  document.addEventListener('touchend',e=>{
-    if(!tracking) return; tracking=false;
-    const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
-    const dt=Date.now()-t0;
-    // conservative: deliberate, horizontal-dominant, not a slow scroll
-    if(Math.abs(dx)<70) return;                 // min distance
-    if(Math.abs(dx) < Math.abs(dy)*1.8) return; // must be clearly horizontal
-    if(dt>700) return;                          // must be a flick, not a drag
-    const i=TAB_ORDER.indexOf(activeTab()); if(i<0) return;
-    const ni = dx<0 ? i+1 : i-1;                // swipe left → next tab
-    if(ni<0 || ni>=TAB_ORDER.length) return;    // one tab per swipe, no wrap
-    switchTab(TAB_ORDER[ni]);
-  },{passive:true});
 }
 /* ---- pull to refresh (Profile tab only) ---- */
 function initPullRefresh(){
@@ -1018,7 +1072,57 @@ function renderActive(){ const t=activeTab();
   if(t==='workout') renderGroup();
   else if(t==='report') setRepView(repView);
   else if(t==='goals') renderGoals();
+  else if(t==='home') renderHome();
   else if(t==='avatar') renderAvatar();
+}
+/* ================= speed dial ================= */
+function toggleSpeedDial(forceClose){
+  const sd=document.getElementById('speedDial'); if(!sd) return;
+  const open = forceClose===true ? false : !sd.classList.contains('open');
+  sd.classList.toggle('open', open);
+  const sign=document.querySelector('#sdFab .sd-sign'); if(sign) sign.textContent=open?'−':'+';
+}
+function sdAction(which){
+  toggleSpeedDial(true);
+  if(which==='record'){ toggleRecord(); }
+  else { toast(which==='challenges'?'Challenges — coming soon':'Friends — coming soon'); }
+}
+document.addEventListener('pointerdown',e=>{
+  const sd=document.getElementById('speedDial');
+  if(sd && sd.classList.contains('open') && !sd.contains(e.target)) toggleSpeedDial(true);
+});
+
+/* ================= home dashboard ================= */
+function renderHome(){
+  const el=document.getElementById('homeView'); if(!el) return;
+  const st=avStats();
+  const today=todayStr();
+  const loggedToday=(S().logs||[]).filter(l=>l.date===today).length;
+  const d=new Date();
+  const hr=d.getHours();
+  const greet=hr<5?'Still up':hr<12?'Good morning':hr<18?'Good afternoon':'Good evening';
+  const dateStr=d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
+  const dl=devLevel();
+  const li=levelInfo();
+  const rk=(db.mode==='endurance')?{name:'Endurance'}:rankFor(dl);
+  const pct=Math.round((li.pct||0)*100);
+  el.innerHTML=
+    '<div class="home-hero">'+
+      '<div class="hh-date">'+esc(dateStr)+'</div>'+
+      '<div class="hh-greet">'+greet+', '+esc(avName())+'</div>'+
+      '<div class="hh-rank"><span class="hh-lv">Lv '+dl+'</span>'+esc(rk.name)+'</div>'+
+      '<div class="hh-xpbar"><i style="width:'+pct+'%"></i></div>'+
+      '<div class="hh-xptext">'+(li.lvl<MAXLVL?(li.into+' / '+li.need+' XP to next level'):'Max level reached')+'</div>'+
+    '</div>'+
+    '<div class="home-stats">'+
+      '<div class="hs-card"><b>'+st.streak+'</b><span>Day streak</span></div>'+
+      '<div class="hs-card"><b>'+fmtK(st.sessions)+'</b><span>Sessions</span></div>'+
+      '<div class="hs-card"><b>'+fmtVol(st.vol)+'</b><span>Volume kg</span></div>'+
+    '</div>'+
+    '<div class="card home-today">'+
+      '<div class="ht-row"><div><div class="ht-lab">Logged today</div><div class="ht-sub">Sets recorded so far</div></div><div class="ht-num">'+loggedToday+'</div></div>'+
+      '<button class="ht-cta" onclick="switchTab(\'workout\')">Start training</button>'+
+    '</div>';
 }
 function setMode(m){ if(db.mode===m) return; db.mode=m; closeGroupMenu(); curGroup=GROUPS[0]; for(const k in vals) delete vals[k]; save(); applyMode(); toast(m==='endurance'?'Endurance mode':'Strength mode'); }
 function applyMode(){
@@ -1030,7 +1134,18 @@ function applyMode(){
   document.getElementById('groupDd').style.display= end?'none':'';
   renderHead(); renderActive(); updateNavBadge(); checkLevelUp();
 }
-function renderHead(){ document.getElementById('headStats').textContent = db.mode==='endurance' ? 'Roadrunner' : 'Worldbreaker'; }
+function renderHead(){ /* subtitle removed — kept as no-op for existing callers */ }
+
+/* ===== switchable logo (tap header to switch) ===== */
+const BOLT_SVG='<svg viewBox="0 0 28 44" aria-hidden="true"><path d="M17.5 0 1.5 26.5H11L8.5 44 26.5 16H16.5L21.5 0Z"/></svg>';
+function logoParts(){ return db.logo==='weapon' ? ['WEA','ON'] : ['ATH','ETE']; }
+function renderBrand(){
+  const el=document.getElementById('brand'); if(!el) return;
+  const p=logoParts();
+  el.innerHTML='<span class="bl-part">'+p[0]+'</span><span class="bl-bolt">'+BOLT_SVG+'</span><span class="bl-part">'+p[1]+'</span>';
+}
+function cycleLogo(){ db.logo=(db.logo==='weapon')?'athlete':'weapon'; save(); renderBrand();
+  toast(db.logo==='weapon'?'WEAPON logo':'ATHLETE logo'); }
 
 /* ================= group dropdown ================= */
 function buildDropdown(){
@@ -1137,9 +1252,24 @@ function initDragReorder(container){
       e.preventDefault();
       const card=grip.closest('.ex'); if(!card) return;
       const cards=[...container.querySelectorAll('.ex')];
-      card.classList.add('dragging'); if(navigator.vibrate) navigator.vibrate(10);
+      const rect=card.getBoundingClientRect();
+      const offX=e.clientX-rect.left, offY=e.clientY-rect.top;
+      // floating ghost that follows the pointer/touch
+      const ghost=card.cloneNode(true);
+      ghost.classList.add('drag-ghost');
+      ghost.classList.remove('dragging','drag-over');
+      ghost.style.width=rect.width+'px';
+      ghost.style.left=rect.left+'px';
+      ghost.style.top=rect.top+'px';
+      document.body.appendChild(ghost);
+      card.classList.add('dragging'); // dimmed placeholder left in flow
+      document.body.classList.add('dragging-active');
+      if(navigator.vibrate) navigator.vibrate(10);
+      try{ grip.setPointerCapture(e.pointerId); }catch(_){}
       let overEl=null;
       const move=ev=>{
+        ghost.style.left=(ev.clientX-offX)+'px';
+        ghost.style.top=(ev.clientY-offY)+'px';
         const y=ev.clientY;
         let target=null;
         for(const c of cards){ if(c===card) continue; const r=c.getBoundingClientRect();
@@ -1151,7 +1281,9 @@ function initDragReorder(container){
       const up=ev=>{
         document.removeEventListener('pointermove',move);
         document.removeEventListener('pointerup',up);
+        ghost.remove();
         card.classList.remove('dragging'); cards.forEach(c=>c.classList.remove('drag-over'));
+        document.body.classList.remove('dragging-active');
         if(overEl==='end'){ container.querySelector('.addcard')?.before(card); }
         else if(overEl){ overEl.before(card); }
         const names=[...container.querySelectorAll('.ex')].map(c=>c.dataset.ex);
@@ -1417,6 +1549,7 @@ function renderAvatar(){
   S().seenLevel=li.lvl; save();
   const _ab=document.querySelector('.bottomnav button[data-t="avatar"]'); if(_ab) _ab.classList.remove('leveled');
   updateNavBadge(); renderIDCard();
+  const _ptb=document.getElementById('ptbName'); if(_ptb) _ptb.textContent=avName();
   renderProfileStats(); renderAppearance(); renderAchievements(); renderDevPanel();
   const dl=devLevel();
   document.getElementById('avLevelNum').textContent=dl;
@@ -1581,14 +1714,14 @@ function fmtClock(s){ const m=Math.floor(s/60); return m+':'+String(s%60).padSta
 function calForVals(kg,reps,sets){ const bw=db.bw||75; kg=+kg||0; reps=+reps||0; sets=+sets||1; const durMin=sets*(reps*3+45)/60; const met=3.5+2.5*Math.min(1, bw>0?kg/bw:0); return Math.round(met*3.5*bw/200*durMin); }
 function calForLog(l){ return calForVals(l.kg, l.reps, l.sets||3); }
 function toggleRecord(){ rec.on?maximizeRecord():startRecord(); }
-function startRecord(){ rec={on:true, start:Date.now(), items:[], timer:null}; document.getElementById('recBtn').classList.add('recording'); maximizeRecord(); updateRecBar(); rec.timer=setInterval(updateRecBar,1000); toast('Recording started'); }
+function startRecord(){ rec={on:true, start:Date.now(), items:[], timer:null}; document.getElementById('recBtn')?.classList.add('recording'); document.getElementById('sdFab')?.classList.add('recording'); maximizeRecord(); updateRecBar(); rec.timer=setInterval(updateRecBar,1000); toast('Recording started'); }
 function maximizeRecord(){ if(!rec.on) return; const f=document.getElementById('recFull'); if(f) f.classList.add('open'); document.getElementById('recBar').classList.remove('show'); updateRecBar(); }
 function minimizeRecord(){ const f=document.getElementById('recFull'); if(f) f.classList.remove('open'); if(rec.on) document.getElementById('recBar').classList.add('show'); }
 function updateRecBar(){ if(!rec.on) return; const secs=Math.floor((Date.now()-rec.start)/1000); const mins=secs/60; const cal=rec.items.reduce((a,i)=>a+i.cal,0); const xp=rec.items.reduce((a,i)=>a+i.xp,0); const t=fmtClock(secs), c=Math.round(cal), r=mins>0.05?(cal/mins).toFixed(1):'0';
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
   set('rbTime',t); set('rbCal',c); set('rbRate',r); set('rbXp','+'+xp);
   set('rfTime',t); set('rfCal',c); set('rfRate',r); set('rfXp','+'+xp); }
-function stopRecord(){ clearInterval(rec.timer); rec.on=false; document.getElementById('recBtn').classList.remove('recording'); document.getElementById('recBar').classList.remove('show'); const f=document.getElementById('recFull'); if(f) f.classList.remove('open'); showRecSummary(); }
+function stopRecord(){ clearInterval(rec.timer); rec.on=false; document.getElementById('recBtn')?.classList.remove('recording'); document.getElementById('sdFab')?.classList.remove('recording'); document.getElementById('recBar').classList.remove('show'); const f=document.getElementById('recFull'); if(f) f.classList.remove('open'); showRecSummary(); }
 function showRecSummary(){
   const secs=Math.floor((Date.now()-rec.start)/1000); const mins=secs/60;
   const cal=rec.items.reduce((a,i)=>a+i.cal,0); const xp=rec.items.reduce((a,i)=>a+i.xp,0);
@@ -1726,8 +1859,8 @@ function closePlanner(){ const m=document.getElementById('plannerModal'); if(m) 
 save();
 applyTheme();
 applyColors();
+renderBrand();
 applyMode();
-initSwipeNav();
 initPullRefresh();
 window.addEventListener('resize', ()=>{ const t=activeTab(); if(t==='report'&&repView==='report') renderReport(); if(t==='goals') renderGoals(); if(t==='avatar') renderAvatar(); });
 if(!storageOK){ setTimeout(()=>toast("Heads up: data won't save in this mode — host it to keep history"),700); }
@@ -1791,3 +1924,4 @@ if ("serviceWorker" in navigator) {
 </script>
 </body>
 </html>
+
