@@ -485,8 +485,8 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 
     <div class="card">
       <h2>Appearance</h2>
-      <div class="hint">Pick an accent — it carries across the whole app.</div>
-      <div class="p2-aprow"><span class="p2-aplab">Accent</span><div class="p2-acset" id="acSet"></div></div>
+      <div class="hint">Pick a theme — it recolors the whole app.</div>
+      <div class="p2-aprow"><span class="p2-aplab">Theme</span><div class="p2-acset" id="acSet"></div></div>
     </div>
 
     <div class="card">
@@ -673,12 +673,26 @@ function load(){
 function save(){ lsSet(KEY, JSON.stringify(db)); }
 function S(){ return db[db.mode]; }
 
-/* ---- accent colour packs (appearance personalization) ---- */
+/* ---- theme packs (appearance personalization) ----
+   Each theme recolors the whole app: accent + page/panel/text surfaces.
+   'Gold' is the premium default. The four palettes below come from Andrew's
+   reference boards (slate, forest, orchid/plum, ember/branding-orange). */
 const ACCENT_SET=[
-  {name:'Bronze',  hex:'#c2a878', rgb:'194,168,120', dim:'#7d6c47', ink:'#15120b'},
-  {name:'Molten',  hex:'#f6651e', rgb:'246,101,30',  dim:'#9c3d10', ink:'#1a0c03'},
-  {name:'Steel',   hex:'#5aa9e6', rgb:'90,169,230',  dim:'#2f6f9c', ink:'#04141f'},
-  {name:'Crimson', hex:'#e0413e', rgb:'224,65,62',   dim:'#9a2a28', ink:'#1c0504'},
+  {name:'Gold',   hex:'#c2a878', rgb:'194,168,120', dim:'#7d6c47', ink:'#15120b',
+    page:'#0a0a0b', panel:'#0e0f11', panel2:'#141517', tx:'#e9e7e3', muted:'#9b9a96', faint:'#6a6a67',
+    line:'rgba(255,255,255,.07)', line2:'rgba(255,255,255,.04)'},
+  {name:'Slate',  hex:'#9ba8ab', rgb:'155,168,171', dim:'#4a5c6a', ink:'#06141b',
+    page:'#06141b', panel:'#0b1d27', panel2:'#11212d', tx:'#ccd0cf', muted:'#9ba8ab', faint:'#4a5c6a',
+    line:'rgba(204,208,207,.10)', line2:'rgba(204,208,207,.05)'},
+  {name:'Forest', hex:'#8eb69b', rgb:'142,182,155', dim:'#235347', ink:'#051f20',
+    page:'#051f20', panel:'#0a2925', panel2:'#163832', tx:'#daf1de', muted:'#8eb69b', faint:'#235347',
+    line:'rgba(218,241,222,.10)', line2:'rgba(218,241,222,.05)'},
+  {name:'Orchid', hex:'#dfb6b2', rgb:'223,182,178', dim:'#854f6c', ink:'#190019',
+    page:'#190019', panel:'#211038', panel2:'#2b124c', tx:'#fbe4d8', muted:'#dfb6b2', faint:'#854f6c',
+    line:'rgba(251,228,216,.10)', line2:'rgba(251,228,216,.05)'},
+  {name:'Ember',  hex:'#e85002', rgb:'232,80,20',   dim:'#c10801', ink:'#1a0a02',
+    page:'#000000', panel:'#0d0d0d', panel2:'#1a1a1a', tx:'#f9f9f9', muted:'#a7a7a7', faint:'#646464',
+    line:'rgba(255,255,255,.09)', line2:'rgba(255,255,255,.05)'},
 ];
 function curAccent(){ const i=(db.dev&&db.dev.color)||0; return ACCENT_SET[i]||ACCENT_SET[0]; }
 function accent(){ return curAccent().hex; }
@@ -686,7 +700,11 @@ function accentRGB(){ return curAccent().rgb; }
 function applyColors(){ const a=curAccent(); const s=document.body.style;
   s.setProperty('--accent',a.hex); s.setProperty('--accent-dim',a.dim);
   s.setProperty('--accent-rgb',a.rgb); s.setProperty('--accent-ink',a.ink||'#15120b');
-  s.setProperty('--gold',a.hex); }
+  s.setProperty('--gold',a.hex);
+  s.setProperty('--page',a.page); s.setProperty('--panel',a.panel); s.setProperty('--panel-2',a.panel2);
+  s.setProperty('--ink',a.tx); s.setProperty('--muted',a.muted); s.setProperty('--faint',a.faint);
+  s.setProperty('--line',a.line); s.setProperty('--line-2',a.line2);
+  const tc=document.querySelector('meta[name=theme-color]'); if(tc) tc.setAttribute('content',a.page); }
 function devLevel(){ const o=db.dev&&db.dev.lvl; return (o&&o>=1&&o<=MAXLVL)?o:levelInfo().lvl; }
 
 /* ================= helpers ================= */
@@ -1190,7 +1208,7 @@ function pickAccent(i){ db.dev=db.dev||{}; db.dev.color=i; save(); applyColors()
 function renderAppearance(){
   const acEl=document.getElementById('acSet'); if(!acEl) return;
   const cur=(db.dev&&db.dev.color)||0;
-  acEl.innerHTML=ACCENT_SET.map((a,i)=>`<span class="p2-acsw${i===cur?' on':''}" style="background:${a.hex}" title="${a.name}" onclick="pickAccent(${i})"></span>`).join('');
+  acEl.innerHTML=ACCENT_SET.map((a,i)=>`<span class="p2-acsw${i===cur?' on':''}" style="background:linear-gradient(135deg,${a.panel2} 0%,${a.panel2} 42%,${a.hex} 100%)" title="${a.name}" onclick="pickAccent(${i})"></span>`).join('');
 }
 function achList(st){ return [
   {nm:'First set', ic:'<path d="M5 12l4 4L19 6"/>', got:st.logs>=1, p:Math.min(1,st.logs/1)},
