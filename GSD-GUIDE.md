@@ -2,7 +2,7 @@
 
 > Reference only. Nothing has been installed. Read the **Heads-up** section before running anything.
 
-## What GSD is
+## What GSD is .
 
 GSD is a **spec-driven development system for AI coding CLIs** — Claude Code, and also Codex,
 Cursor, Gemini CLI, OpenCode, Copilot, Windsurf, and others. It is **not** a library or framework
