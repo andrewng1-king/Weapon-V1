@@ -47,11 +47,6 @@
   --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --num:'Archivo','Inter',sans-serif;
   --display:'Inter',system-ui,sans-serif;
-  /* ===== motion system — snappy & athletic ===== */
-  --e-snap:cubic-bezier(.2,.8,.2,1);        /* smooth, no overshoot */
-  --e-spring:cubic-bezier(.34,1.56,.64,1);  /* punchy overshoot */
-  --e-out:cubic-bezier(.16,1,.3,1);         /* decisive settle */
-  --t-press:90ms; --t-micro:170ms; --t-screen:240ms;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 /* ===== global interactive states (a11y) ===== */
@@ -90,12 +85,8 @@ header{position:relative;max-width:var(--app);margin:0 auto;display:flex;align-i
 /* ===== layout ===== */
 main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 .tab{display:none;}
-.tab.active{display:block;animation:fade var(--t-screen) var(--e-out);}
-.tab.active.nav-fwd{animation:slideInL var(--t-screen) var(--e-out);}
-.tab.active.nav-back{animation:slideInR var(--t-screen) var(--e-out);}
+.tab.active{display:block;animation:fade .28s ease;}
 @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-@keyframes slideInL{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
-@keyframes slideInR{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
 .sectionTitle{font-family:var(--display);font-weight:700;font-size:1.18rem;letter-spacing:-.01em;margin:16px 2px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .sectionTitle small{font-size:.74rem;color:var(--muted);font-weight:500;flex-shrink:0;}
 .hint{font-size:.76rem;color:var(--faint);margin-bottom:12px;}
@@ -119,18 +110,8 @@ main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 .card h2{font-family:var(--display);font-weight:600;font-size:1rem;letter-spacing:-.005em;margin-bottom:3px;}
 
 /* ===== exercise card ===== */
-.ex{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;}
-.ex.primary{background:var(--panel);border-color:var(--line);box-shadow:none;}
-/* click-selected highlight (option C — techy hairline + accent edge); stays until another card or empty space is clicked */
-.ex.selected{background:var(--panel-2);border-color:rgba(var(--accent-rgb),.3);}
-.ex.selected::after{content:'';position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);z-index:7;}
-/* log celebration — accent wipe + "Logged" stamp (option B) */
-.ex-wipe{position:absolute;inset:0;pointer-events:none;z-index:6;background:rgba(var(--accent-rgb),.16);transform:scaleX(0);transform-origin:left;}
-.ex.logged-anim .ex-wipe{animation:exwipe 640ms var(--e-out);}
-@keyframes exwipe{0%{transform:scaleX(0);opacity:1}55%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
-.ex-stamp{position:absolute;top:14px;right:15px;z-index:8;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--accent);opacity:0;pointer-events:none;}
-.ex.logged-anim .ex-stamp{animation:exstamp 640ms var(--e-out) 160ms both;}
-@keyframes exstamp{0%{opacity:0;transform:translateY(-4px)}30%{opacity:1;transform:none}100%{opacity:1}}
+.ex{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;}
+.ex.primary{background:var(--panel-2);border-color:var(--line);border-left:3px solid var(--accent);border-top-left-radius:0;border-bottom-left-radius:0;box-shadow:0 18px 40px -26px rgba(0,0,0,.9);}
 .ex-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;}
 .ex-name{font-family:var(--display);font-weight:600;font-size:1.05rem;letter-spacing:-.005em;line-height:1.3;color:var(--ink);}
 .ex-target{font-size:.78rem;color:var(--faint);margin-top:3px;}
@@ -150,21 +131,10 @@ main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 .stepper button:active{background:var(--line);}
 .stepper .val{flex:1;text-align:center;min-width:0;}
 .stepper .val input{width:100%;background:none;border:none;color:var(--step-ink);font-family:var(--num);font-weight:700;font-size:1.15rem;text-align:center;outline:none;}
-.stepper button:active{transform:scale(.88);transition:transform var(--t-press) var(--e-out);}
 .stepper .val .unit{display:block;font-size:.56rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:-2px;}
-.logbtn{position:relative;overflow:hidden;flex-shrink:0;min-width:64px;padding:0 20px;border-radius:13px;border:1px solid var(--accent-dim);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.9rem;cursor:pointer;min-height:54px;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform var(--t-press) var(--e-out),background .15s,color .15s;}
+.logbtn{flex-shrink:0;min-width:64px;padding:0 20px;border-radius:13px;border:1px solid var(--accent-dim);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.9rem;cursor:pointer;min-height:54px;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .1s,background .15s,color .15s;}
 .logbtn svg{width:20px;height:20px;}
-.logbtn:active{transform:scale(.96);}
-/* option A — fill-swipe + icon morph */
-.lb-ic{display:flex;align-items:center;justify-content:center;gap:6px;position:relative;z-index:2;transition:opacity 150ms ease,transform 220ms var(--e-out);}
-.lb-chk{position:absolute;inset:0;opacity:0;transform:scale(.5);}
-.logbtn.done .lb-log{opacity:0;transform:scale(.7);}
-.logbtn.done .lb-chk{opacity:1;transform:scale(1);}
-.lb-fill{position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(255,255,255,.32),rgba(255,255,255,.05));transform:scaleX(0);transform-origin:left;pointer-events:none;}
-.logbtn.swipe .lb-fill{animation:lbswipe 340ms var(--e-out);}
-@keyframes lbswipe{0%{transform:scaleX(0);opacity:1}100%{transform:scaleX(1);opacity:0}}
-.logbtn.is-done svg{animation:chkin 240ms var(--e-out);}
-@keyframes chkin{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
+.logbtn:active{transform:scale(.97);}
 .logbtn.is-done{background:none;color:var(--accent);border-color:rgba(194,168,120,.4);}
 
 .detail{display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:12px;}
@@ -316,7 +286,7 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 .dev-switch .ds-label{font-weight:600;font-size:.85rem;}
 .dev-switch .ds-sub{font-size:.62rem;color:var(--faint);margin-top:3px;}
 .toggle{position:relative;width:46px;height:26px;border-radius:99px;background:var(--panel-2);border:1px solid var(--line);flex:0 0 auto;transition:background .2s;}
-.toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#6b6b72;transition:transform var(--t-micro) var(--e-spring),background .2s;}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#6b6b72;transition:transform .2s,background .2s;}
 .dev-switch.on .toggle{background:rgba(var(--accent-rgb),.3);border-color:var(--accent);}
 .dev-switch.on .toggle::after{transform:translateX(20px);background:var(--accent);}
 .dev-row{margin:16px 0;}
@@ -380,8 +350,8 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 @keyframes blink{50%{opacity:.25}}
 
 /* full-screen record */
-.recfull{position:fixed;inset:0;z-index:120;background:radial-gradient(120% 80% at 50% 100%,var(--panel-2),var(--page) 78%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;opacity:0;pointer-events:none;transform:scale(.92);transform-origin:bottom center;transition:opacity var(--t-screen),transform var(--t-screen) var(--e-out);padding:env(safe-area-inset-top) 22px env(safe-area-inset-bottom);}
-.recfull.open{opacity:1;pointer-events:auto;transform:scale(1);}
+.recfull{position:fixed;inset:0;z-index:120;background:radial-gradient(120% 80% at 50% 0%,var(--panel-2),var(--page) 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;opacity:0;pointer-events:none;transition:opacity .26s;padding:env(safe-area-inset-top) 22px env(safe-area-inset-bottom);}
+.recfull.open{opacity:1;pointer-events:auto;}
 .rf-top{position:absolute;top:calc(20px + env(safe-area-inset-top));left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;}
 .rf-live{display:flex;align-items:center;gap:8px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600;}
 .rf-live .rf-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:blink 1s infinite;}
@@ -474,24 +444,14 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 /* toast */
 .toast{position:fixed;bottom:calc(100px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(8px);background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-left:3px solid var(--accent);padding:12px 20px;border-radius:12px;font-weight:600;font-size:.84rem;opacity:0;transition:all .22s;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:0 14px 38px rgba(0,0,0,.55);}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-/* ===== layout density (Comfortable default · Dense override) ===== */
-.card,.panel,.ex,.sectionTitle,.statrow,.controls,.stepper,.p2-stats,.home-stats,.goal-grid,.p2-achgrid,main{transition:padding var(--t-screen) var(--e-out),margin var(--t-screen) var(--e-out),gap var(--t-screen) var(--e-out),border-radius var(--t-screen) var(--e-out),min-height var(--t-screen) var(--e-out);}
-.ex{transition:padding var(--t-screen) var(--e-out),margin var(--t-screen) var(--e-out),border-radius var(--t-screen) var(--e-out),border-color var(--t-micro) var(--e-out),box-shadow var(--t-micro) var(--e-out),background var(--t-micro) var(--e-out);}
-body.dense main{padding-top:2px;}
-body.dense .card,body.dense .panel,body.dense .ex{padding:12px;margin-bottom:9px;border-radius:14px;}
-body.dense .sectionTitle{margin:11px 2px 9px;}
-body.dense .controls{margin-top:10px;}
-body.dense .statrow{gap:6px;}
-body.dense .p2-stats,body.dense .home-stats,body.dense .goal-grid,body.dense .p2-achgrid{gap:8px;}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
 
 /* menu drawer: theme toggle + tags */
 .mm-item .mm-tag{margin-left:auto;font-size:.66rem;font-weight:700;letter-spacing:.04em;color:var(--faint);text-transform:uppercase;flex:0 0 auto;}
 .mm-item .mm-toggle{margin-left:auto;width:38px;height:22px;border-radius:99px;background:var(--track);position:relative;flex:0 0 auto;transition:background .2s;}
-.mm-item .mm-toggle i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform var(--t-micro) var(--e-spring),background .2s,width var(--t-micro) var(--e-out);}
+.mm-item .mm-toggle i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s;}
 .mm-item .mm-toggle.on{background:rgba(var(--accent-rgb),.45);}
 .mm-item .mm-toggle.on i{transform:translateX(16px);background:var(--accent);}
-.mm-item:active .mm-toggle i{width:22px;}
 .mm-item .mm-toggle + .mm-tag{margin-left:10px;min-width:34px;text-align:right;}
 
 /* workout planner placeholder */
@@ -803,12 +763,6 @@ body.dragging-active{-webkit-user-select:none;user-select:none;}
       <span class="mm-toggle" id="mmThemeDot" aria-hidden="true"><i></i></span>
       <span class="mm-tag" id="mmThemeState">Dark</span>
     </button>
-    <button class="mm-item" type="button" onclick="toggleLayout()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="6" rx="1.5"/><rect x="3.5" y="14" width="17" height="6" rx="1.5"/></svg>
-      <span>Layout density</span>
-      <span class="mm-toggle" id="mmLayoutDot" aria-hidden="true"><i></i></span>
-      <span class="mm-tag" id="mmLayoutState">Comfortable</span>
-    </button>
     <button class="mm-item" type="button" onclick="closeMainMenu();openPlanner()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9h17M8 3v3M16 3v3M7.5 13h4M7.5 16.5h7"/></svg>
       <span>Workout planner</span>
@@ -860,7 +814,7 @@ function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ storageOK=false;
 function emptyBucket(){ return {logs:[], custom:[], removed:[], order:{}}; }
 function fixBucket(b){ b=b||{}; b.logs=b.logs||[]; b.custom=b.custom||[]; b.removed=b.removed||[]; b.order=b.order||{}; return b; }
 let db=load();
-db.profile=db.profile||{}; db.goals=db.goals||{}; db.dev=db.dev||{}; db.theme=(db.theme==='light')?'light':'dark'; db.layout=(db.layout==='dense')?'dense':'comfortable';
+db.profile=db.profile||{}; db.goals=db.goals||{}; db.dev=db.dev||{}; db.theme=(db.theme==='light')?'light':'dark';
 function load(){
   try{ const d=JSON.parse(lsGet(KEY));
     if(d && (d.strength||d.endurance||Array.isArray(d.logs))){
@@ -916,12 +870,6 @@ function toggleTheme(){ db.theme=(curTheme()==='light')?'dark':'light'; save(); 
   syncThemeUI(); renderActive(); toast(curTheme()==='light'?'Light mode':'Dark mode'); }
 function syncThemeUI(){ const b=document.getElementById('mmThemeState'); if(b) b.textContent=curTheme()==='light'?'Light':'Dark';
   const dot=document.getElementById('mmThemeDot'); if(dot) dot.classList.toggle('on',curTheme()==='light'); }
-/* ---- layout density (Comfortable / Dense) ---- */
-function curLayout(){ return db.layout==='dense'?'dense':'comfortable'; }
-function applyLayout(){ document.body.classList.toggle('dense',curLayout()==='dense'); document.body.dataset.layout=curLayout(); }
-function toggleLayout(){ db.layout=(curLayout()==='dense')?'comfortable':'dense'; save(); applyLayout(); syncLayoutUI(); toast(curLayout()==='dense'?'Dense layout':'Comfortable layout'); }
-function syncLayoutUI(){ const b=document.getElementById('mmLayoutState'); if(b) b.textContent=curLayout()==='dense'?'Dense':'Comfortable';
-  const dot=document.getElementById('mmLayoutDot'); if(dot) dot.classList.toggle('on',curLayout()==='dense'); }
 /* chart neutral helpers — flip with theme */
 function isLight(){ return curTheme()==='light'; }
 function cGrid(){ return isLight()?'rgba(0,0,0,.10)':'rgba(255,255,255,.10)'; }
@@ -1062,13 +1010,10 @@ function getVals(ex){ if(!vals[ex.n]){ const last=lastLog(ex.n); vals[ex.n]={kg:
 const TAB_ORDER=['workout','goals','home','report','avatar'];
 function switchTab(t){
   const btn=document.querySelector('.bottomnav button[data-t="'+t+'"]'); if(!btn) return;
-  const dir=TAB_ORDER.indexOf(t)-TAB_ORDER.indexOf(activeTab());
   document.querySelectorAll('.bottomnav button[data-t]').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active','nav-fwd','nav-back'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   btn.classList.add('active');
-  const pane=document.getElementById('tab-'+t);
-  if(dir!==0) pane.classList.add(dir>0?'nav-fwd':'nav-back');
-  pane.classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
   renderActive();
   window.scrollTo(0,0);
 }
@@ -1241,8 +1186,7 @@ const GRIP_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 function exCardHTML(ex,{primary=false,drag=false,groupTag=''}={}){
   const v=getVals(ex); const sid=slug(ex.n); const today=todayStr();
   const todayN=S().logs.filter(l=>l.ex===ex.n&&l.date===today).length;
-  return `<div class="ex${primary?' primary':''}${selectedEx===ex.n?' selected':''}" data-ex="${attr(ex.n)}"${drag?` draggable="false"`:''}>
-    <span class="ex-wipe" aria-hidden="true"></span><span class="ex-stamp" aria-hidden="true">Logged</span>
+  return `<div class="ex${primary?' primary':''}" data-ex="${attr(ex.n)}"${drag?` draggable="false"`:''}>
     <div class="ex-head" onclick="toggleDetail('${sid}','${attr(ex.n)}')">
       ${drag?`<span class="ex-grip" title="Drag to reorder" onclick="event.stopPropagation()">${GRIP_SVG}</span>`:''}
       <div style="flex:1;min-width:0">
@@ -1263,7 +1207,7 @@ function exCardHTML(ex,{primary=false,drag=false,groupTag=''}={}){
         <div class="val"><input type="number" step="1" inputmode="numeric" value="${v.reps}" onchange="setVal('${attr(ex.n)}','reps',this.value)"><span class="unit">reps</span></div>
         <button onclick="bump('${attr(ex.n)}','reps',1)">+</button>
       </div>
-      <button class="logbtn${todayN?' is-done':''}" id="log_${sid}" onclick="logTap('${attr(ex.n)}',event)" aria-label="Log set">${todayN?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>':'<span class="lb-fill" aria-hidden="true"></span><span class="lb-ic lb-log">Log</span><span class="lb-ic lb-chk" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>'}</button>
+      <button class="logbtn${todayN?' is-done':''}" id="log_${sid}" onclick="logTap('${attr(ex.n)}')" aria-label="Log set">${todayN?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>':'Log'}</button>
     </div>
     <div class="detail" id="detail_${sid}"></div>
   </div>`;
@@ -1363,30 +1307,7 @@ function bump(name,field,d){
   inputs[field==='kg'?0:1].value=v[field];
 }
 function setVal(name,field,val){ const ex=findEx(name); if(!ex) return; const v=getVals(ex); const x=parseFloat(val); if(!isNaN(x)&&x>=0) v[field]=x; }
-function logTap(name,ev){
-  const already=S().logs.some(l=>l.ex===name && l.date===todayStr());
-  const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  if(!already && ev && ev.currentTarget && !reduce){
-    const btn=ev.currentTarget; btn.classList.add('swipe','done');   // fill-swipe + icon morph (option A)
-    const card=btn.closest('.ex'); if(card) playLogAnim(card);       // accent wipe + stamp (option B)
-  }
-  if(already) unlogEx(name); else logEx(name);
-}
-function playLogAnim(card){
-  card.classList.remove('logged-anim'); void card.offsetWidth; card.classList.add('logged-anim');
-}
-/* ---- click-to-select card highlight (option C); persists until another card or empty space ---- */
-let selectedEx=null;
-function applyExSelection(){ document.querySelectorAll('#groupView .ex').forEach(c=>c.classList.toggle('selected', selectedEx!=null && c.getAttribute('data-ex')===selectedEx)); }
-document.addEventListener('click',function(e){
-  const card=e.target.closest('.ex');
-  if(card && card.closest('#groupView')){
-    const n=card.getAttribute('data-ex');
-    if(selectedEx!==n){ selectedEx=n; applyExSelection(); }
-  } else if(!card){
-    if(selectedEx!==null){ selectedEx=null; applyExSelection(); }
-  }
-});
+function logTap(name){ if(S().logs.some(l=>l.ex===name && l.date===todayStr())) unlogEx(name); else logEx(name); }
 function unlogEx(name){
   S().logs=S().logs.filter(l=>!(l.ex===name && l.date===todayStr()));
   if(navigator.vibrate) navigator.vibrate(18);
@@ -1399,7 +1320,7 @@ function logEx(name){
   S().logs.push(log);
   if(rec.on){ rec.items.push({ex:name, xp:logXP(log), cal:calForLog(log)}); updateRecBar(); }
   save(); toast(`${name} · ${v.kg} kg × ${v.reps}`);
-  checkLevelUp(); setTimeout(renderGroup, 620);  // let the glass sheen finish before the card re-renders
+  checkLevelUp(); setTimeout(renderGroup, 320);
 }
 function toggleDetail(sid,name){
   const d=document.getElementById('detail_'+sid);
@@ -1933,7 +1854,6 @@ function openMainMenu(){
   if(g) g.textContent='Hi, '+(nm||'Athlete')+'!';
   const bg=document.getElementById('mainMenuBg'); if(bg) bg.classList.add('open');
   syncThemeUI();
-  syncLayoutUI();
   if(window.WeaponRefreshUsers) window.WeaponRefreshUsers();
 }
 function closeMainMenu(){ const bg=document.getElementById('mainMenuBg'); if(bg) bg.classList.remove('open'); }
@@ -1943,7 +1863,6 @@ function closePlanner(){ const m=document.getElementById('plannerModal'); if(m) 
 /* ================= init ================= */
 save();
 applyTheme();
-applyLayout();
 applyColors();
 renderBrand();
 applyMode();
@@ -1987,27 +1906,4 @@ if(!storageOK){ setTimeout(()=>toast("Heads up: data won't save in this mode —
   }
   window.WeaponRefreshUsers = refresh;
   addForm.addEventListener('submit', async function(e){
-    e.preventDefault();
-    var name = document.getElementById('wpn-add-name').value.trim();
-    if (!name) return;
-    say('Adding…');
-    try {
-      var u = await Sx.addUser(name);
-      document.getElementById('wpn-add-name').value = '';
-      await Sx.selectUser(u.id);
-    } catch (e) {
-      say(/duplicate|unique/i.test(e.message) ? 'That name is taken.' : (e.message || 'Could not add user.'));
-    }
-  });
-})();
-</script>
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js").catch(function () {});
-  });
-}
-</script>
-</body>
-</html>
-
+    e.preventD
