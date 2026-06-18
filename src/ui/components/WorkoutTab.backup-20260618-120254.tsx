@@ -1,31 +1,11 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { useWeapon, useUIStore } from '@/hooks';
-import { exercisesFor, GROUPS, GROUP_COLORS, groupOf } from '@/domain/catalogue';
+import { exercisesFor, GROUPS, GROUP_COLORS } from '@/domain/catalogue';
 import { todayStr, fmtDate, uid } from '@/domain/format';
 import type { Group, PresetExercise } from '@/domain/types';
 import { createLogEntry, isLoggedToday } from '@/application/workoutUsecases';
-
-const nf = (n: number) => Math.round(n).toLocaleString('en-US');
-
-/** Barbell glyph used across the reskinned cards (matches the Hybrid design). */
-function BarbellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 9v6M5.5 7v10M18.5 7v10M22 9v6M5.5 12h13" />
-    </svg>
-  );
-}
-
-/** Colour-tinted modality tile; colour comes from the group via the --gc var. */
-function MTile({ color, sm }: { color?: string; sm?: boolean }) {
-  return (
-    <div className={`mtile${sm ? ' sm' : ''}`} style={{ ['--gc' as string]: color ?? 'var(--accent)' } as CSSProperties}>
-      <BarbellIcon />
-    </div>
-  );
-}
 
 export function WorkoutTab() {
   const { state, logExercise, deleteLog, removeExercise } = useWeapon();
@@ -54,16 +34,6 @@ export function WorkoutTab() {
   }
 
   const firstUnlogged = exercises.find((e) => !isLoggedToday(bucket, e.n));
-
-  // ===== Today hero summary (mirrors the live-session hero block) =====
-  const todayLogs = bucket.logs.filter((l) => l.date === today);
-  const todayVol = todayLogs.reduce((s, l) => s + l.kg * l.reps * l.sets, 0);
-  const todaySets = todayLogs.reduce((s, l) => s + l.sets, 0);
-  const todayExercises = new Set(todayLogs.map((l) => l.ex)).size;
-  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-  const weekVol = bucket.logs
-    .filter((l) => l.date >= weekAgo)
-    .reduce((s, l) => s + l.kg * l.reps * l.sets, 0);
 
   function handleLog(ex: PresetExercise) {
     const v = vals[ex.n] ?? { kg: ex.start, reps: 10 };
@@ -114,15 +84,6 @@ export function WorkoutTab() {
           )}
 
           <main>
-            <div className="wk-hero">
-              <div className="wh-eyebrow">Today · {group}</div>
-              <div className="wh-big">{nf(todayVol)}<small> kg volume</small></div>
-              <div className="wh-stats">
-                <div className="wh-stat"><div className="wv">{todaySets}</div><div className="wl">Sets</div></div>
-                <div className="wh-stat"><div className="wv">{todayExercises}</div><div className="wl">Exercises</div></div>
-                <div className="wh-stat"><div className="wv">{nf(weekVol)}</div><div className="wl">7-day kg</div></div>
-              </div>
-            </div>
             <div>
               {exercises.map((ex) => {
                 const done = isLoggedToday(bucket, ex.n);
@@ -135,8 +96,7 @@ export function WorkoutTab() {
                   <div key={ex.n} className={`ex${isPrimary ? ' primary' : ''}${done ? ' selected' : ''}`}>
                     <div className="ex-wipe" />
                     <div className="ex-head" onClick={() => setOpenDetail(isDetailOpen ? null : ex.n)}>
-                      <MTile color={GROUP_COLORS[ex.group ?? group]} />
-                      <div className="ex-txt">
+                      <div>
                         <div className="ex-name">{ex.n}{searchQuery && ex.group && <span className="search-grouptag">{ex.group}</span>}</div>
                         <div className="ex-target">{ex.t}</div>
                         {lastLog && <div className="lastlog">Last: <b>{lastLog.kg}kg × {lastLog.reps}</b></div>}
@@ -197,21 +157,16 @@ export function WorkoutTab() {
             const vol = dayLogs.reduce((s, l) => s + l.kg * l.reps * l.sets, 0);
             return (
               <div key={date}>
-                <div className="session-date">{fmtDate(date)}<small>{nf(vol)} kg vol</small></div>
-                {dayLogs.map((l) => {
-                  const g = groupOf(l.ex);
-                  return (
-                    <div key={l.id} className="hentry">
-                      <MTile sm color={g ? GROUP_COLORS[g] : undefined} />
-                      <div className="he-txt">
-                        <div className="he-name">{l.ex}</div>
-                        <div className="he-sub">{l.kg}kg × {l.reps} · {l.sets} {l.sets === 1 ? 'set' : 'sets'}</div>
-                      </div>
-                      <span className="he-metric"><b>{nf(l.kg * l.reps * l.sets)}</b> kg</span>
-                      <button className="del" onClick={() => deleteLog(l.id)}>✕</button>
+                <div className="session-date">{fmtDate(date)}<small>{Math.round(vol)} kg vol</small></div>
+                {dayLogs.map((l) => (
+                  <div key={l.id} className="hentry">
+                    <div>
+                      <div><b>{l.kg}kg × {l.reps}</b> · {l.sets}s</div>
+                      <div className="small">{l.ex}</div>
                     </div>
-                  );
-                })}
+                    <button className="del" onClick={() => deleteLog(l.id)}>✕</button>
+                  </div>
+                ))}
               </div>
             );
           })}
