@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWeapon, useUIStore } from '@/hooks';
-import { GROUPS, MAXLVL, STR_RANKS } from '@/domain';
-import type { Group, PresetExercise } from '@/domain/types';
-import { exercisesFor, groupOf } from '@/domain/catalogue';
-import { calForVals } from '@/domain/metrics';
-import { todayStr, fmtDate, fmtK } from '@/domain/format';
+import { MAXLVL, STR_RANKS, allSportLogs, levelInfo } from '@/domain/ranks';
+import type { PresetExercise } from '@/domain/types';
+import { categoriesFor, exercisesFor, groupOfSport } from '@/domain/sports';
+import { calForVals, volume } from '@/domain/metrics';
+import { todayStr, fmtDate, fmtK, fmtClock } from '@/domain/format';
 import { createLogEntry } from '@/application/workoutUsecases';
+import { showToast } from './Toast';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -22,17 +23,19 @@ function RecExerciseModal() {
   const vals = useUIStore((s) => s.vals);
   const setVal = useUIStore((s) => s.setVal);
   const addRecordingLog = useUIStore((s) => s.addRecordingLog);
-  const curGroup = useUIStore((s) => s.group);
-  const [recGroup, setRecGroup] = useState<Group>(curGroup);
+  const curCategory = useUIStore((s) => s.category);
+  const [recGroup, setRecGroup] = useState(curCategory);
 
   if (!state) return null;
-  const bucket = state[state.mode];
+  const sport = state.sport;
+  const bucket = state.sports[sport];
+  const cats = categoriesFor(sport);
   const today = todayStr();
-  const exs = exercisesFor(recGroup, bucket);
+  const exs = exercisesFor(sport, recGroup, bucket);
 
   function recLog(ex: PresetExercise) {
-    const v = vals[ex.n] ?? { kg: ex.start, reps: 10 };
-    logExercise(createLogEntry(v.kg, v.reps, ex.n));
+    const v = vals[ex.n] ?? { kg: ex.start, reps: 8 };
+    logExercise(createLogEntry(ex, v, sport, state.setsPerEntry));
     addRecordingLog(ex.n);
     haptic([12, 28, 12]);
   }
@@ -42,26 +45,28 @@ function RecExerciseModal() {
       <div className="modal" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
         <h3>Log exercise</h3>
         <div className="rex-groups">
-          {GROUPS.map((g) => (
-            <button key={g} className={`rex-gbtn${g === recGroup ? ' on' : ''}`} onClick={() => setRecGroup(g)}>{g}</button>
+          {cats.map((g) => (
+            <button key={g} type="button" className={`rex-gbtn${g === recGroup ? ' on' : ''}`} onClick={() => setRecGroup(g)}>{g}</button>
           ))}
         </div>
         {exs.map((ex) => {
-          const v = vals[ex.n] ?? { kg: ex.start, reps: 10 };
+          const v = vals[ex.n] ?? { kg: ex.start, reps: 8 };
+          const kg = v.kg ?? ex.start;
+          const reps = v.reps ?? 8;
           const todayN = bucket.logs.filter((l) => l.ex === ex.n && l.date === today).length;
           return (
             <div key={ex.n} className="rex-row">
               <div className="rex-name">{ex.n}{todayN ? <span className="rex-done"> ✓</span> : ''}</div>
               <div className="rex-ctl">
                 <div className="stepper">
-                  <button onClick={() => setVal(ex.n, Math.max(0, v.kg - 2.5), v.reps)}>−</button>
-                  <div className="val"><input type="number" value={v.kg} onChange={(e) => setVal(ex.n, +e.target.value, v.reps)} /><span className="unit">kg</span></div>
-                  <button onClick={() => setVal(ex.n, v.kg + 2.5, v.reps)}>+</button>
+                  <button type="button" onClick={() => setVal(ex.n, { kg: Math.max(0, kg - 2.5), reps })}>−</button>
+                  <div className="val"><input type="number" value={kg} onChange={(e) => setVal(ex.n, { kg: +e.target.value, reps })} /><span className="unit">kg</span></div>
+                  <button type="button" onClick={() => setVal(ex.n, { kg: kg + 2.5, reps })}>+</button>
                 </div>
                 <div className="stepper">
-                  <button onClick={() => setVal(ex.n, v.kg, Math.max(1, v.reps - 1))}>−</button>
-                  <div className="val"><input type="number" value={v.reps} onChange={(e) => setVal(ex.n, v.kg, +e.target.value)} /><span className="unit">reps</span></div>
-                  <button onClick={() => setVal(ex.n, v.kg, v.reps + 1)}>+</button>
+                  <button type="button" onClick={() => setVal(ex.n, { kg, reps: Math.max(1, reps - 1) })}>−</button>
+                  <div className="val"><input type="number" value={reps} onChange={(e) => setVal(ex.n, { kg, reps: +e.target.value })} /><span className="unit">reps</span></div>
+                  <button type="button" onClick={() => setVal(ex.n, { kg, reps: reps + 1 })}>+</button>
                 </div>
                 <button className="rex-log" onClick={() => recLog(ex)}>Log</button>
               </div>
@@ -83,7 +88,7 @@ function CalendarModal() {
   const [cal, setCal] = useState({ y: now.getFullYear(), m: now.getMonth(), sel: today as string | null });
 
   if (!state) return null;
-  const logs = state[state.mode].logs;
+  const logs = allSportLogs(state);
   const bw = state.bw;
   const loggedDates = new Set(logs.map((l) => l.date));
   const startDow = (new Date(cal.y, cal.m, 1).getDay() + 6) % 7;
@@ -105,9 +110,9 @@ function CalendarModal() {
   }
 
   const detList = cal.sel ? logs.filter((l) => l.date === cal.sel) : [];
-  const detVol = detList.reduce((a, l) => a + l.kg * l.reps * l.sets, 0);
-  const detCal = detList.reduce((a, l) => a + calForVals(l.kg, l.reps, l.sets, bw), 0);
-  const detGroups = [...new Set(detList.map((l) => groupOf(l.ex)).filter(Boolean))].join(' · ');
+  const detVol = detList.reduce((a, l) => a + volume(l), 0);
+  const detCal = detList.reduce((a, l) => a + calForVals(l.kg ?? 0, l.reps ?? 0, l.sets, bw), 0);
+  const detGroups = [...new Set(detList.map((l) => groupOfSport(state.sport, l.ex, state.sports[state.sport].custom)).filter(Boolean))].join(' · ');
 
   return (
     <div className="modal-bg open" onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
@@ -152,10 +157,43 @@ function CalendarModal() {
   );
 }
 
+/** Post-recording summary (legacy recSummary). */
+function RecSummaryModal() {
+  const { state } = useWeapon();
+  const setModal = useUIStore((s) => s.setModal);
+  const recording = useUIStore((s) => s.recording);
+
+  if (!state) return null;
+  const mins = Math.floor(recording.elapsed / 60);
+  const kcal = Math.round(recording.elapsed / 60 * 5);
+
+  return (
+    <div className="modal-bg open" onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
+      <div className="modal">
+        <h3>Session complete</h3>
+        <div className="rec-summary-grid">
+          <div><b>{fmtClock(recording.elapsed)}</b><span>Duration</span></div>
+          <div><b>{recording.logs.length}</b><span>Sets logged</span></div>
+          <div><b>{kcal}</b><span>kcal est.</span></div>
+          <div><b>{mins}</b><span>Minutes</span></div>
+        </div>
+        {recording.logs.length > 0 && (
+          <div className="hint" style={{ marginTop: 12 }}>
+            {recording.logs.join(' · ')}
+          </div>
+        )}
+        <div className="mrow"><button type="button" className="m-save" onClick={() => setModal(null)}>Done</button></div>
+      </div>
+    </div>
+  );
+}
+
 export function Modals() {
-  const { state, addCustomExercise, saveProfile, setBw } = useWeapon();
+  const { state, addCustomExercise, saveProfile, setBw, uploadMedia } = useWeapon();
   const { modal, setModal } = useUIStore();
-  const group = useUIStore((s) => s.group);
+  const category = useUIStore((s) => s.category);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
 
   const [exName, setExName] = useState('');
   const [exTarget, setExTarget] = useState('');
@@ -170,8 +208,19 @@ export function Modals() {
 
   function handleAddExercise() {
     if (!exName.trim()) return;
-    addCustomExercise({ n: exName.trim(), g: group, t: exTarget.trim(), start: 0 });
+    addCustomExercise({ n: exName.trim(), g: category, t: exTarget.trim(), start: 0 });
     setExName(''); setExTarget(''); setModal(null);
+    showToast('Exercise added');
+  }
+
+  async function handleMedia(kind: 'photo' | 'cover', file: File) {
+    try {
+      const url = await uploadMedia(kind, file);
+      saveProfile({ [kind]: url });
+      showToast('Image updated');
+    } catch {
+      showToast('Upload failed');
+    }
   }
 
   function handleSaveProfile() {
@@ -196,7 +245,7 @@ export function Modals() {
       {modal === 'addExercise' && (
         <div className="modal-bg open" onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
           <div className="modal">
-            <h3>Add exercise to {group}</h3>
+            <h3>Add exercise to {category}</h3>
             <label>Name</label>
             <input value={exName} onChange={(e) => setExName(e.target.value)} placeholder="e.g. Incline Fly" />
             <label>Target muscles</label>
@@ -215,6 +264,10 @@ export function Modals() {
           <div className="modal">
             <h3>Profile settings</h3>
             <div className="set-section">
+              <label>Photo</label>
+              <input ref={photoRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleMedia('photo', f); }} />
+              <label>Cover</label>
+              <input ref={coverRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleMedia('cover', f); }} />
               <label>Name</label>
               <input value={pName} onChange={(e) => setPName(e.target.value)} />
               <label>Title / Job</label>
@@ -242,7 +295,8 @@ export function Modals() {
             <div className="ranks-list">
               {STR_RANKS.map((name, i) => {
                 const lvl = i + 1;
-                const isCur = lvl === (state.dev.on ? state.dev.lvl : undefined);
+                const realLvl = levelInfo(allSportLogs(state)).lvl;
+                const isCur = lvl === (state.dev.on ? state.dev.lvl : realLvl);
                 return (
                   <div key={name} className={`rank-line${isCur ? ' cur' : ''}`}>
                     <span className="rl-lv">{lvl}</span>
@@ -273,6 +327,8 @@ export function Modals() {
 
       {/* Mini exercise logger (from live recording) */}
       {modal === 'recExercise' && <RecExerciseModal />}
+
+      {modal === 'recSummary' && <RecSummaryModal />}
 
       {/* History calendar */}
       {modal === 'calendar' && <CalendarModal />}

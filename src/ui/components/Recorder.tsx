@@ -2,13 +2,10 @@
 
 import { useEffect } from 'react';
 import { useUIStore } from '@/hooks/uiStore';
-import { useWeapon } from '@/hooks';
 import { fmtClock } from '@/domain/format';
-import { calForVals } from '@/domain/metrics';
 
 export function Recorder() {
-  const { recording, tickRecording, stopRecording, toggleMinimized } = useUIStore();
-  const { state } = useWeapon();
+  const { recording, tickRecording, stopRecording, toggleMinimized, setModal } = useUIStore();
 
   useEffect(() => {
     if (!recording.active) return;
@@ -18,7 +15,6 @@ export function Recorder() {
 
   if (!recording.active && recording.elapsed === 0) return null;
 
-  const bw = state?.bw ?? 75;
   const kcal = Math.round(recording.elapsed / 60 * 5);
 
   if (recording.minimized && recording.active) {
@@ -31,15 +27,13 @@ export function Recorder() {
     );
   }
 
-  if (!recording.active && recording.elapsed > 0) {
-    return null;
-  }
+  if (!recording.active && recording.elapsed > 0) return null;
 
   return (
     <div className="recfull open">
       <div className="rf-top">
         <div className="rf-live"><span className="rf-dot" />Live</div>
-        <button className="rf-min" onClick={toggleMinimized}>
+        <button type="button" className="rf-min" onClick={toggleMinimized}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
           Minimize
         </button>
@@ -53,13 +47,13 @@ export function Recorder() {
       </div>
 
       <div className="rf-tools">
-        <button className="rf-tool" onClick={() => useUIStore.getState().setModal('recExercise')}>
+        <button type="button" className="rf-tool" onClick={() => setModal('recExercise')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
           LOG
         </button>
       </div>
 
-      <button className="rf-stop" onClick={stopRecording} aria-label="Stop recording" />
+      <button type="button" className="rf-stop" onClick={stopRecording} aria-label="Stop recording" />
     </div>
   );
 }

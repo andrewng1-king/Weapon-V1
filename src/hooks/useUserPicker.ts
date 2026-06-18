@@ -1,36 +1,37 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { create } from 'zustand';
 import { queryKeys } from './queryKeys';
-import { SupabaseUserRepository } from '@/infrastructure/supabase/UserRepository';
-import { isSupabaseConfigured } from '@/infrastructure/supabase/client';
-import type { User } from '@/domain/types';
+import { useUIStore } from './uiStore';
+import { HttpUserRepository } from '@/infrastructure/api/HttpUserRepository';
+import { DEFAULT_USER_ID, type User } from '@/domain/types';
 
-const repo = new SupabaseUserRepository();
-const STORAGE_KEY = 'weapon_user_id';
+const repo = new HttpUserRepository();
+
+interface UserPickerStore {
+  userId: string;
+  setUserId: (id: string) => void;
+}
+
+/** Shared across all components — session-only user switch (no localStorage). */
+const useUserPickerStore = create<UserPickerStore>((set) => ({
+  userId: DEFAULT_USER_ID,
+  setUserId: (id) => set({ userId: id }),
+}));
 
 export function useUserPicker() {
   const qc = useQueryClient();
-  const [userId, setUserId] = useState<string | null>(null);
-  const configured = isSupabaseConfigured();
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setUserId(stored);
-  }, []);
+  const userId = useUserPickerStore((s) => s.userId);
+  const setUserId = useUserPickerStore((s) => s.setUserId);
 
   const { data: users = [] } = useQuery({
     queryKey: queryKeys.users,
     queryFn: () => repo.listUsers(),
-    enabled: configured,
   });
 
   const addMutation = useMutation({
-    mutationFn: (username: string) => {
-      if (!configured) return Promise.resolve({ id: '', username, display_name: username } as User);
-      return repo.addUser(username);
-    },
+    mutationFn: (username: string) => repo.addUser(username),
     onSuccess: (user: User) => {
       qc.invalidateQueries({ queryKey: queryKeys.users });
       selectUser(user.id);
@@ -38,8 +39,9 @@ export function useUserPicker() {
   });
 
   function selectUser(id: string) {
+    if (id === useUserPickerStore.getState().userId) return;
     setUserId(id);
-    localStorage.setItem(STORAGE_KEY, id);
+    useUIStore.getState().clearVals();
     qc.invalidateQueries({ queryKey: queryKeys.state(id) });
   }
 

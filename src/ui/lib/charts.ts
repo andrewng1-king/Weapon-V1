@@ -1,5 +1,4 @@
-import { GROUP_COLORS } from '@/domain/catalogue';
-import type { Group } from '@/domain/types';
+import { GROUP_COLORS } from '@/domain/sports';
 
 const ACCENT = '#c2a878';
 const TRACK = 'rgba(255,255,255,.08)';
@@ -26,13 +25,28 @@ export function drawGauge(ctx: CanvasRenderingContext2D, W: number, H: number, p
   }
 }
 
-export function drawWeek(ctx: CanvasRenderingContext2D, W: number, H: number, days: string[], trained: boolean[], today: string) {
+export function drawWeek(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  days: string[],
+  trained: boolean[],
+  today: string,
+  selectedIdx?: number,
+) {
   const r = 14;
   const gap = (W - days.length * r * 2) / (days.length + 1);
 
   days.forEach((d, i) => {
     const x = gap + r + i * (r * 2 + gap);
     const y = H / 2;
+    if (selectedIdx === i) {
+      ctx.beginPath();
+      ctx.arc(x, y, r + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = ACCENT;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     if (trained[i]) {
@@ -67,7 +81,7 @@ export function drawSplit(ctx: CanvasRenderingContext2D, W: number, H: number, c
     ctx.fillText(g, 0, y + barH / 2);
 
     const barW = (W - labelW - 40) * (c / max);
-    ctx.fillStyle = GROUP_COLORS[g as Group] || '#888';
+    ctx.fillStyle = GROUP_COLORS[g] || '#888';
     ctx.beginPath();
     ctx.roundRect(labelW, y, barW, barH, 4);
     ctx.fill();
