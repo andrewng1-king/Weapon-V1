@@ -34,6 +34,7 @@ interface UIState {
   stopRecording: () => void;
   toggleMinimized: () => void;
   tickRecording: () => void;
+  addRecordingLog: (name: string) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -60,4 +61,5 @@ export const useUIStore = create<UIState>((set) => ({
   tickRecording: () => set((s) => ({
     recording: { ...s.recording, elapsed: s.recording.active ? Math.floor((Date.now() - s.recording.startTime) / 1000) : s.recording.elapsed }
   })),
+  addRecordingLog: (name) => set((s) => (s.recording.active ? { recording: { ...s.recording, logs: [...s.recording.logs, name] } } : {})),
 }));

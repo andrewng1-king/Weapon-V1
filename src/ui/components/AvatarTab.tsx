@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useWeapon } from '@/hooks';
 import { levelInfo, rankFor, xpToReach, MAXLVL, STR_RANKS } from '@/domain/ranks';
 import { avStats, achList, groupCounts } from '@/domain/metrics';
@@ -12,6 +13,19 @@ import { useUIStore } from '@/hooks/uiStore';
 export function AvatarTab() {
   const { state, setDevMode, setAccent } = useWeapon();
   const setModal = useUIStore((s) => s.setModal);
+
+  // level ring "you levelled" pulse when the profile is opened (legacy parity)
+  const [ringPulse, setRingPulse] = useState(false);
+  useEffect(() => {
+    const reduce = typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (reduce) return;
+    const t1 = window.setTimeout(() => {
+      setRingPulse(true);
+      const t2 = window.setTimeout(() => setRingPulse(false), 460);
+      return () => window.clearTimeout(t2);
+    }, 800);
+    return () => window.clearTimeout(t1);
+  }, []);
 
   if (!state) return null;
   const bucket = state[state.mode];
@@ -65,7 +79,7 @@ export function AvatarTab() {
       </div>
 
       <div className="card av-hero">
-        <div className="ring">
+        <div className={`ring${ringPulse ? ' lvpulse' : ''}`}>
           <svg width="96" height="96">
             <circle cx="48" cy="48" r="42" stroke="var(--track)" strokeWidth="5" fill="none" />
             <circle cx="48" cy="48" r="42" stroke="var(--accent)" strokeWidth="5" fill="none"

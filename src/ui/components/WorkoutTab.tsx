@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useWeapon, useUIStore } from '@/hooks';
 import { exercisesFor, GROUPS, GROUP_COLORS, groupOf } from '@/domain/catalogue';
 import { todayStr, fmtDate, uid } from '@/domain/format';
@@ -8,6 +8,19 @@ import type { Group, PresetExercise } from '@/domain/types';
 import { createLogEntry, isLoggedToday } from '@/application/workoutUsecases';
 
 const nf = (n: number) => Math.round(n).toLocaleString('en-US');
+
+/** Honour the OS "reduce motion" setting before playing log celebrations. */
+function prefersReduced() {
+  return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+}
+/** Short haptic burst (legacy parity); no-op where unsupported. */
+function haptic(pattern: number | number[]) {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(pattern);
+}
+
+const CheckGlyph = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+);
 
 /** Barbell glyph used across the reskinned cards (matches the Hybrid design). */
 function BarbellIcon() {
@@ -34,6 +47,24 @@ export function WorkoutTab() {
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const [openDetail, setOpenDetail] = useState<string | null>(null);
   const [wkPage, setWkPage] = useState<'workout' | 'history'>('workout');
+  // transient name of the card mid log-celebration (drives swipe + wipe + stamp)
+  const [justLogged, setJustLogged] = useState<string | null>(null);
+  // click-selected card highlight — persists until another card or empty space is clicked
+  const [selectedEx, setSelectedEx] = useState<string | null>(null);
+
+  // legacy "click anywhere selects this card, click empty space clears it" behaviour
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const card = (e.target as HTMLElement)?.closest?.('.ex') as HTMLElement | null;
+      if (card && card.dataset.ex) {
+        setSelectedEx(card.dataset.ex);
+      } else {
+        setSelectedEx(null);
+      }
+    }
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, []);
 
   if (!state) return null;
   const bucket = state[state.mode];
@@ -69,9 +100,15 @@ export function WorkoutTab() {
     const v = vals[ex.n] ?? { kg: ex.start, reps: 10 };
     const done = isLoggedToday(bucket, ex.n);
     if (done) {
+      haptic(18);
       const todayLog = bucket.logs.find((l) => l.ex === ex.n && l.date === today);
       if (todayLog) deleteLog(todayLog.id);
     } else {
+      haptic([12, 28, 12]);
+      if (!prefersReduced()) {
+        setJustLogged(ex.n);
+        window.setTimeout(() => setJustLogged((cur) => (cur === ex.n ? null : cur)), 700);
+      }
       const log = createLogEntry(v.kg, v.reps, ex.n);
       logExercise(log);
     }
@@ -126,14 +163,22 @@ export function WorkoutTab() {
             <div>
               {exercises.map((ex) => {
                 const done = isLoggedToday(bucket, ex.n);
+                const todayCount = bucket.logs.filter((l) => l.ex === ex.n && l.date === today).length;
                 const isPrimary = ex === firstUnlogged;
+                const isSelected = selectedEx === ex.n;
+                const isAnimating = justLogged === ex.n;
                 const v = vals[ex.n] ?? { kg: ex.start, reps: 10 };
                 const lastLog = bucket.logs.filter((l) => l.ex === ex.n).slice(-1)[0];
                 const isDetailOpen = openDetail === ex.n;
 
                 return (
-                  <div key={ex.n} className={`ex${isPrimary ? ' primary' : ''}${done ? ' selected' : ''}`}>
-                    <div className="ex-wipe" />
+                  <div
+                    key={ex.n}
+                    data-ex={ex.n}
+                    className={`ex${isPrimary ? ' primary' : ''}${isSelected ? ' selected' : ''}${isAnimating ? ' logged-anim' : ''}`}
+                  >
+                    <span className="ex-wipe" aria-hidden="true" />
+                    <span className="ex-stamp" aria-hidden="true">Logged</span>
                     <div className="ex-head" onClick={() => setOpenDetail(isDetailOpen ? null : ex.n)}>
                       <MTile color={GROUP_COLORS[ex.group ?? group]} />
                       <div className="ex-txt">
@@ -141,8 +186,7 @@ export function WorkoutTab() {
                         <div className="ex-target">{ex.t}</div>
                         {lastLog && <div className="lastlog">Last: <b>{lastLog.kg}kg × {lastLog.reps}</b></div>}
                       </div>
-                      {done && <span className="pill-done">Done</span>}
-                      <span className="chev">›</span>
+                      {done ? <span className="pill-done">Logged{todayCount > 1 ? ` ×${todayCount}` : ''}</span> : <span className="chev">›</span>}
                     </div>
 
                     <div className="controls">
@@ -162,10 +206,20 @@ export function WorkoutTab() {
                         </div>
                         <button onClick={() => setVal(ex.n, v.kg, v.reps + 1)}>+</button>
                       </div>
-                      <button className={`logbtn${done ? ' is-done' : ''}`} onClick={() => handleLog(ex)}>
-                        {done ? (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12l4 4L19 6" /></svg>
-                        ) : 'Log'}
+                      <button
+                        className={`logbtn${done && !isAnimating ? ' is-done' : ''}${isAnimating ? ' swipe done' : ''}`}
+                        onClick={() => handleLog(ex)}
+                        aria-label="Log set"
+                      >
+                        {done && !isAnimating ? (
+                          <CheckGlyph />
+                        ) : (
+                          <>
+                            <span className="lb-fill" aria-hidden="true" />
+                            <span className="lb-ic lb-log">Log</span>
+                            <span className="lb-ic lb-chk" aria-hidden="true"><CheckGlyph /></span>
+                          </>
+                        )}
                       </button>
                     </div>
 
