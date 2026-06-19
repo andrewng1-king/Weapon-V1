@@ -1,9 +1,9 @@
 {
-  "name": "ATHLETE — Strength Tracker",
-  "short_name": "ATHLETE",
+  "name": "EDGR — Strength Tracker",
+  "short_name": "EDGR",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0b",
-  "theme_color": "#0a0a0b",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
   "icons": []
 }

@@ -141,9 +141,7 @@ export function AvatarTab() {
         <div className="p2-aprow">
           <span className="p2-aplab">Accent</span>
           <div className="p2-acset">
-            {ACCENT_SET.map((a, i) => (
-              <span key={i} className={`p2-acsw${state.dev.color === i ? ' on' : ''}`} style={{ background: a.hex }} onClick={() => setAccent(i)} />
-            ))}
+            <span className={`p2-acsw${state.dev.color === 0 ? ' on' : ''}`} style={{ background: '#e8ff00' }} onClick={() => setAccent(0)} />
           </div>
         </div>
       </div>

@@ -40,6 +40,7 @@ interface UIState {
   searchQuery: string;
   menuOpen: boolean;
   modal: Modal;
+  rankOpen: boolean;
   recording: RecordingState;
   vals: Record<string, ExerciseVals>;
   pending: Record<string, PendingSet>;
@@ -52,9 +53,8 @@ interface UIState {
   setSearchQuery: (q: string) => void;
   setMenuOpen: (open: boolean) => void;
   setModal: (m: Modal) => void;
-  setVal: (ex: string, patch: Partial<ExerciseVals>) => void;
-  setPending: (ex: string, patch: Partial<PendingSet>) => void;
-  clearPendingNote: (ex: string) => void;
+  setRankOpen: (open: boolean) => void;
+  setVal: (ex: string, kg: number, reps: number) => void;
   startRecording: () => void;
   stopRecording: () => void;
   toggleMinimized: () => void;
@@ -77,6 +77,7 @@ export const useUIStore = create<UIState>((set) => ({
   searchQuery: '',
   menuOpen: false,
   modal: null,
+  rankOpen: false,
   recording: { active: false, startTime: 0, elapsed: 0, logs: [], minimized: false },
   vals: {},
   pending: {},
@@ -95,24 +96,10 @@ export const useUIStore = create<UIState>((set) => ({
   setSearchQuery: (q) => set({ searchQuery: q }),
   setMenuOpen: (open) => set({ menuOpen: open }),
   setModal: (m) => set({ modal: m }),
-  setVal: (ex, patch) =>
-    set((s) => ({ vals: { ...s.vals, [ex]: { ...s.vals[ex], ...patch } } })),
-  setPending: (ex, patch) =>
-    set((s) => ({ pending: { ...s.pending, [ex]: { ...s.pending[ex], ...patch } } })),
-  clearPendingNote: (ex) =>
-    set((s) => {
-      const p = { ...s.pending[ex] };
-      delete p.note;
-      return { pending: { ...s.pending, [ex]: p } };
-    }),
-  startRecording: () =>
-    set({ recording: { active: true, startTime: Date.now(), elapsed: 0, logs: [], minimized: false } }),
-  stopRecording: () =>
-    set((s) => {
-      const next = { ...s.recording, active: false };
-      const openSummary = s.recording.active && s.recording.elapsed > 0;
-      return { recording: next, modal: openSummary ? 'recSummary' : s.modal };
-    }),
+  setRankOpen: (open) => set({ rankOpen: open }),
+  setVal: (ex, kg, reps) => set((s) => ({ vals: { ...s.vals, [ex]: { kg, reps } } })),
+  startRecording: () => set({ recording: { active: true, startTime: Date.now(), elapsed: 0, logs: [], minimized: false } }),
+  stopRecording: () => set((s) => ({ recording: { ...s.recording, active: false } })),
   toggleMinimized: () => set((s) => ({ recording: { ...s.recording, minimized: !s.recording.minimized } })),
   tickRecording: () =>
     set((s) => ({

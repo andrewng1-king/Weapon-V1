@@ -15,6 +15,8 @@ import { ReportTab } from './ReportTab';
 import { AvatarTab } from './AvatarTab';
 import { MenuDrawer } from './MenuDrawer';
 import { Modals } from './Modals';
+import { SpeedDial } from './SpeedDial';
+import { RankScreen } from './RankScreen';
 import { Recorder } from './Recorder';
 import { Toast, showToast } from './Toast';
 import { SportBar } from './SportBar';
@@ -99,6 +101,8 @@ export function App() {
       <TabPanel id="report" className={cls('report')}><ReportTab /></TabPanel>
       <TabPanel id="avatar" className={cls('avatar')}><AvatarTab /></TabPanel>
       <BottomNav />
+      <SpeedDial />
+      <RankScreen />
       <Recorder />
       <MenuDrawer />
       <Modals />
