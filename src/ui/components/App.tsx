@@ -90,8 +90,6 @@ export function App() {
 
   return (
     <>
-      <div className="bg-hex" aria-hidden="true" />
-      <div className="bg-glow" aria-hidden="true" />
       <PtrIndicator phase={ptrPhase} />
       <Header />
       <SportBar sport={state.sport} onChange={setSport} />

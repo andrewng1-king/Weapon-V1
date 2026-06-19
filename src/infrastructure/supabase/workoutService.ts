@@ -10,7 +10,7 @@ const DEFAULT_STATE: WeaponState = {
   profile: {},
   goals: {},
   theme: 'dark',
-  logo: 'weapon',
+  logo: 'athlete',
   dev: { on: false, lvl: 1, color: 0 },
   unit: 'kg',
   layout: 'comfortable',
@@ -52,6 +52,12 @@ function migrateSettings(settings: Record<string, unknown>): Partial<WeaponState
   if (settings.mode === 'endurance' && !settings.sport) out.sport = 'run';
   if (settings.mode === 'strength' && !settings.sport) out.sport = 'gym';
   if (settings.sport) out.sport = settings.sport as SportId;
+
+  if (settings.logo === 'weapon' || settings.logo === 'athlete') {
+    out.logo = settings.logo;
+  } else {
+    delete out.logo;
+  }
 
   const sports = emptySports();
   const legacySports = settings.sports as Record<string, Bucket> | undefined;

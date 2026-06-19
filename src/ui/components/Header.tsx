@@ -19,7 +19,19 @@ export function Header() {
         </svg>
       </button>
       <div className="brand-wrap">
-        <div className="brand-logo" onClick={toggleLogo} role="button" tabIndex={0} aria-label="Switch logo">
+        <div
+          className="brand-logo"
+          onClick={toggleLogo}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleLogo();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Switch logo"
+        >
           {logo === 'athlete' ? (
             <>
               <span className="bl-part">ATH</span>

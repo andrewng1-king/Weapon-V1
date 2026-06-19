@@ -14,41 +14,29 @@ const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
 ];
 
 export function BottomNav() {
-  const { tab, setTab, recording, startRecording, stopRecording } = useUIStore();
+  const { tab, setTab } = useUIStore();
   const { state } = useWeapon();
   const bucket = state.sports[state.sport];
   const li = levelInfo(allSportLogs(state));
   const showBadge = li.lvl > (bucket.seenLevel ?? 0);
 
-  const renderTab = (t: (typeof TABS)[number]) => (
-    <button
-      key={t.id}
-      type="button"
-      data-t={t.id}
-      className={`${tab === t.id ? 'active' : ''}${t.id === 'avatar' && showBadge ? ' leveled' : ''}`}
-      onClick={() => setTab(t.id)}
-    >
-      <svg className="ico vortex" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        {t.icon}
-      </svg>
-      {t.label}
-      {t.id === 'avatar' && showBadge && <span className="lvup-badge">LV UP</span>}
-    </button>
-  );
-
   return (
     <nav className="bottomnav">
-      {TABS.slice(0, 3).map(renderTab)}
-      <button
-        type="button"
-        className={`rec-btn icobtn${recording.active ? ' recording' : ''}`}
-        aria-label={recording.active ? 'Stop recording' : 'Record session'}
-        aria-pressed={recording.active}
-        onClick={() => (recording.active ? stopRecording() : startRecording())}
-      >
-        <span className="rec-dot" />
-      </button>
-      {TABS.slice(3).map(renderTab)}
+      {TABS.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          data-t={t.id}
+          className={`${tab === t.id ? 'active' : ''}${t.id === 'avatar' && showBadge ? ' leveled' : ''}`}
+          onClick={() => setTab(t.id)}
+        >
+          <svg className="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            {t.icon}
+          </svg>
+          <span className="nav-label">{t.label}</span>
+          {t.id === 'avatar' && showBadge && <span className="lvup-badge">LV UP</span>}
+        </button>
+      ))}
     </nav>
   );
 }

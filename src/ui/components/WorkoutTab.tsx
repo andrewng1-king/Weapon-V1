@@ -1,27 +1,24 @@
 'use client';
 
-import { useState, useEffect, useRef, type CSSProperties } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useWeapon, useUIStore } from '@/hooks';
 import {
   categoriesFor,
   exercisesFor,
-  catColor,
   exMetric,
   exU1,
   exU2,
   isWeightMetric,
-  sportDef,
-  groupOfSport,
 } from '@/domain/sports';
 import { todayStr, fmtDate } from '@/domain/format';
 import type { PresetExercise, LogEntry } from '@/domain/types';
-import { createLogEntry, isLoggedToday, bestE1RM } from '@/application/workoutUsecases';
+import { createLogEntry, bestE1RM } from '@/application/workoutUsecases';
 import { e1rm } from '@/domain/ranks';
 import { kgDisplay, kgCanonical, weightStep, platesFor, volume } from '@/domain/metrics';
 import { showToast, showToastAction } from './Toast';
-import { CountUp } from './CountUp';
 
 const nf = (n: number) => Math.round(n).toLocaleString('en-US');
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 function prefersReduced() {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -31,38 +28,119 @@ function haptic(pattern: number | number[]) {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(pattern);
 }
 
+const SET_TYPES: { id: LogEntry['set_type']; label: string }[] = [
+  { id: 'warm', label: 'Warm-up' },
+  { id: 'work', label: 'Working' },
+  { id: 'drop', label: 'Drop set' },
+];
+
 const CheckGlyph = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
 );
 
-function BarbellIcon() {
+const GripIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" />
+  </svg>
+);
+
+const UndoIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 8h11a6 6 0 0 1 0 12H8" />
+    <path d="M3 8l4-4M3 8l4 4" />
+  </svg>
+);
+
+function logsFor(bucket: { logs: LogEntry[] }, exName: string) {
+  return bucket.logs.filter((l) => l.ex === exName);
+}
+
+function lastLog(bucket: { logs: LogEntry[] }, exName: string) {
+  const logs = logsFor(bucket, exName);
+  return logs.length ? logs[logs.length - 1] : null;
+}
+
+function prevLog(bucket: { logs: LogEntry[] }, exName: string) {
+  const logs = logsFor(bucket, exName);
+  return logs.length > 1 ? logs[logs.length - 2] : null;
+}
+
+function isPrimaryMetric(l: LogEntry) {
+  return !l.metric || l.metric === 'weight';
+}
+
+function fmtLogVal(l: LogEntry, unit: 'kg' | 'lb'): string {
+  if (!l || isPrimaryMetric(l)) {
+    const disp = unit === 'lb' ? kgDisplay(l.kg ?? 0, 'lb') : (l.kg ?? 0);
+    return `${disp} ${unit} × ${l.reps ?? 0}`;
+  }
+  const a = `${round1(l.v1 ?? 0)} ${l.u1 ?? ''}`.trim();
+  const b = l.v2 != null && l.v2 !== 0 && l.u2 ? ` · ${round1(l.v2)} ${l.u2}` : '';
+  return a + b;
+}
+
+function TrendLine({ exName, bucket, unit }: { exName: string; bucket: { logs: LogEntry[] }; unit: 'kg' | 'lb' }) {
+  const last = lastLog(bucket, exName);
+  const prev = prevLog(bucket, exName);
+  if (!last) return <span className="flat">Not logged yet</span>;
+
+  if (isPrimaryMetric(last)) {
+    let arrow: ReactNode = null;
+    if (prev && isPrimaryMetric(prev)) {
+      const d = (unit === 'lb' ? kgDisplay(last.kg ?? 0, 'lb') : (last.kg ?? 0)) - (unit === 'lb' ? kgDisplay(prev.kg ?? 0, 'lb') : (prev.kg ?? 0));
+      if (d > 0) arrow = <span className="up">▲ +{round1(d)}</span>;
+      else if (d < 0) arrow = <span className="down">▼ {round1(d)}</span>;
+      else arrow = <span className="flat">—</span>;
+    }
+    const best = bestE1RM(bucket.logs, exName);
+    const isPR = e1rm(last.kg ?? 0, last.reps ?? 0) >= best - 1e-6 && logsFor(bucket, exName).length > 1;
+    const disp = unit === 'lb' ? kgDisplay(last.kg ?? 0, 'lb') : (last.kg ?? 0);
+    return (
+      <>
+        Last <b>{disp} {unit} × {last.reps}</b>
+        {arrow}
+        {isPR && <span className="pr-star" title="Best estimated 1RM">★ PR</span>}
+        {best > 0 && <span className="trend-ref">best e1RM {unit === 'lb' ? kgDisplay(best, 'lb') : best} {unit}</span>}
+      </>
+    );
+  }
+
+  let arrow: ReactNode = null;
+  if (prev && prev.v1 != null) {
+    const d = round1((last.v1 ?? 0) - (prev.v1 ?? 0));
+    if (d > 0) arrow = <span className="up">▲ +{d}</span>;
+    else if (d < 0) arrow = <span className="down">▼ {d}</span>;
+    else arrow = <span className="flat">—</span>;
+  }
+  const cnt = logsFor(bucket, exName).length;
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 9v6M5.5 7v10M18.5 7v10M22 9v6M5.5 12h13" />
-    </svg>
+    <>
+      Last <b>{fmtLogVal(last, unit)}</b>
+      {arrow}
+      {cnt > 1 && <span className="trend-ref">{cnt} logged</span>}
+    </>
   );
 }
 
-function MTile({ color, sm }: { color?: string; sm?: boolean }) {
+function PlateBar({ kg, bar, unit }: { kg: number; bar: number; unit: 'kg' | 'lb' }) {
+  const plates = platesFor(kg, bar, unit);
+  const barDisp = bar > 0 ? kgDisplay(bar, unit) : kgDisplay(unit === 'lb' ? 45 : 20, unit);
+  if (plates.length === 0) {
+    return (
+      <div className="platebar">
+        <i>bar only · {barDisp} {unit}</i>
+      </div>
+    );
+  }
   return (
-    <div className={`mtile${sm ? ' sm' : ''}`} style={{ ['--gc' as string]: color ?? 'var(--accent)' } as CSSProperties}>
-      <BarbellIcon />
+    <div className="platebar">
+      <span className="pb-lab">Per side</span>
+      {plates.map((p, i) => (
+        <span key={i} className="pb-chip">{unit === 'lb' ? kgDisplay(p, 'lb') : p}</span>
+      ))}
+      <span className="pb-bar">+ {barDisp} bar</span>
     </div>
   );
-}
-
-function formatLogMetric(l: LogEntry, unit: 'kg' | 'lb'): string {
-  const m = l.metric ?? 'weight';
-  if (m === 'weight') {
-    const kg = l.kg ?? l.v1 ?? 0;
-    const disp = unit === 'lb' ? kgDisplay(kg, 'lb') : kg;
-    return `${disp}${unit} × ${l.reps ?? 0} · ${l.sets} sets`;
-  }
-  const u1 = l.u1 ?? '';
-  const u2 = l.u2 ?? '';
-  let s = `${l.v1 ?? 0} ${u1}`;
-  if (l.v2 != null) s += ` · ${l.v2} ${u2}`;
-  return `${s} · ${l.sets} sets`;
 }
 
 export function WorkoutTab() {
@@ -77,7 +155,6 @@ export function WorkoutTab() {
 
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const [openDetail, setOpenDetail] = useState<string | null>(null);
-  const [justLogged, setJustLogged] = useState<string | null>(null);
   const [selectedEx, setSelectedEx] = useState<string | null>(null);
   const [prFlash, setPrFlash] = useState<string | null>(null);
   const [draggingName, setDraggingName] = useState<string | null>(null);
@@ -95,9 +172,21 @@ export function WorkoutTab() {
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
-      const card = (e.target as HTMLElement)?.closest?.('.ex') as HTMLElement | null;
+      const t = e.target as HTMLElement;
+      if (t.closest('input,textarea,select,.ex-grip,.group-menu,.stepper,.logbtn,.qf-chip,.ex-undo')) return;
+      const card = t.closest?.('.ex') as HTMLElement | null;
       if (card?.dataset.ex) setSelectedEx(card.dataset.ex);
       else setSelectedEx(null);
+    }
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, []);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const wt = (e.target as HTMLElement).closest('.wk-top');
+      if (wt) return;
+      setGroupMenuOpen(false);
     }
     document.addEventListener('click', onDocClick);
     return () => document.removeEventListener('click', onDocClick);
@@ -118,13 +207,8 @@ export function WorkoutTab() {
     exercises = exercisesFor(sport, category, bucket);
   }
 
-  const firstUnlogged = exercises.find((e) => !isLoggedToday(bucket, e.n));
-  const todayLogs = bucket.logs.filter((l) => l.date === today);
-  const todayVol = todayLogs.reduce((s, l) => s + volume(l), 0);
-  const todaySets = todayLogs.reduce((s, l) => s + l.sets, 0);
-  const todayExercises = new Set(todayLogs.map((l) => l.ex)).size;
-  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-  const weekVol = bucket.logs.filter((l) => l.date >= weekAgo).reduce((s, l) => s + volume(l), 0);
+  const firstUnlogged = exercises.find((e) => !bucket.logs.some((l) => l.ex === e.n && l.date === today));
+  const loggedTodayCount = exercises.filter((e) => bucket.logs.some((l) => l.ex === e.n && l.date === today)).length;
 
   function defaultVals(ex: PresetExercise) {
     const metric = exMetric(ex, sport);
@@ -143,7 +227,36 @@ export function WorkoutTab() {
     else setVal(ex.n, { ...cur, v2: Math.max(0, (cur.v2 ?? 0) + delta) });
   }
 
-  function handleLog(ex: PresetExercise) {
+  function quickFill(ex: PresetExercise, e: React.MouseEvent) {
+    e.stopPropagation();
+    const ll = lastLog(bucket, ex.n);
+    if (!ll) return;
+    const cur = defaultVals(ex);
+    if (isWeightMetric(ex, sport)) {
+      setVal(ex.n, { ...cur, kg: ll.kg ?? ll.v1 ?? ex.start, reps: ll.reps ?? 8 });
+    } else {
+      setVal(ex.n, { ...cur, v1: ll.v1 ?? ex.start, v2: ll.v2 ?? 0 });
+    }
+    haptic(8);
+  }
+
+  function playLogAnim(card: HTMLElement | null) {
+    if (!card) return;
+    card.classList.remove('logged-anim');
+    void card.offsetWidth;
+    card.classList.add('logged-anim');
+  }
+
+  function handleLog(ex: PresetExercise, e: React.MouseEvent<HTMLButtonElement>) {
+    const reduce = prefersReduced();
+    if (!reduce && e.currentTarget) {
+      const btn = e.currentTarget;
+      btn.classList.remove('swipe', 'done');
+      void btn.offsetWidth;
+      btn.classList.add('swipe', 'done');
+      playLogAnim(btn.closest('.ex') as HTMLElement | null);
+    }
+
     const v = defaultVals(ex);
     const pend = pending[ex.n] ?? {};
     const log = createLogEntry(ex, v, sport, state.setsPerEntry, {
@@ -160,39 +273,47 @@ export function WorkoutTab() {
       if (cur > prev && cur > 0) isPr = true;
     }
 
-    haptic(isPr ? [20, 40, 20] : [12, 28, 12]);
-    if (!prefersReduced()) {
-      setJustLogged(null);
-      requestAnimationFrame(() => {
-        setJustLogged(ex.n);
-        window.setTimeout(() => setJustLogged((c) => (c === ex.n ? null : c)), 700);
-      });
-      if (isPr) {
-        setPrFlash(ex.n);
-        window.setTimeout(() => setPrFlash(null), 900);
-      }
+    haptic(isPr ? [14, 30, 14, 30, 55] : [12, 28, 12]);
+    if (isPr && !reduce) {
+      setPrFlash(ex.n);
+      window.setTimeout(() => setPrFlash(null), 900);
     }
 
     logExercise(log);
     clearPendingNote(ex.n);
 
-    if (isPr) showToast(`PR! e1RM ${e1rm(log.kg ?? 0, log.reps ?? 0)} kg`);
-    else showToastAction('Logged', 'Undo', () => deleteLog(log.id));
+    const wlabel = fmtLogVal(log, unit);
+    if (isPr) showToast(`★ New PR · ${ex.n} · ${wlabel}`);
+    else showToastAction(`Logged ${ex.n} · ${wlabel}`, 'Undo', () => deleteLog(log.id));
 
     if (metric !== 'dist' && metric !== 'time') startRest(state.restDefault);
   }
 
-  function undoLast(exName: string) {
-    const todayL = bucket.logs.filter((l) => l.ex === exName && l.date === today);
-    const last = todayL[todayL.length - 1];
-    if (last) deleteLog(last.id);
+  function undoLast(exName: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    const todayLogs = bucket.logs.filter((l) => l.ex === exName && l.date === today);
+    let removeId: string | undefined;
+    if (todayLogs.length) removeId = todayLogs[todayLogs.length - 1].id;
+    else {
+      const all = logsFor(bucket, exName);
+      if (all.length) removeId = all[all.length - 1].id;
+    }
+    if (!removeId) return;
+    deleteLog(removeId);
+    haptic(16);
+    showToast(`${exName} · last set undone`);
+  }
+
+  function toggleDetail(exName: string) {
+    setOpenDetail((cur) => (cur === exName ? null : exName));
   }
 
   function startDrag(e: React.PointerEvent, name: string) {
-    if (searchQuery) return; // reorder disabled while searching
+    if (searchQuery) return;
     const card = (e.currentTarget as HTMLElement).closest('.ex') as HTMLElement | null;
     if (!card) return;
     e.preventDefault();
+    e.stopPropagation();
 
     const rect = card.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
@@ -208,8 +329,6 @@ export function WorkoutTab() {
     dragGhostRef.current = ghost;
     document.body.classList.add('dragging-active');
     setDraggingName(name);
-
-    const cat = category;
 
     const onMove = (ev: PointerEvent) => {
       const g = dragGhostRef.current;
@@ -230,7 +349,7 @@ export function WorkoutTab() {
       if (from < 0 || to < 0 || from === to) return;
       names.splice(from, 1);
       names.splice(to, 0, name);
-      setOrder(cat, names);
+      setOrder(category, names);
     };
 
     const onEnd = () => {
@@ -250,7 +369,6 @@ export function WorkoutTab() {
   }
 
   const sessionDates = [...new Set(bucket.logs.map((l) => l.date))].sort().reverse();
-  const volLabel = sport === 'gym' ? 'kg volume' : sportDef(sport).goal.unit;
 
   return (
     <>
@@ -282,65 +400,78 @@ export function WorkoutTab() {
 
           {searchOpen && (
             <div className="wk-searchbar open">
-              <input type="search" placeholder="Search…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <input type="search" placeholder="Search all exercises…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
           )}
 
           <main>
-            <div className="wk-hero">
-              <div className="wh-eyebrow">Today · {sportDef(sport).name}</div>
-              <div className="wh-big"><CountUp value={todayVol} format={nf} /><small> {volLabel}</small></div>
-              <div className="wh-stats">
-                <div className="wh-stat"><div className="wv"><CountUp value={todaySets} /></div><div className="wl">Sets</div></div>
-                <div className="wh-stat"><div className="wv"><CountUp value={todayExercises} /></div><div className="wl">Exercises</div></div>
-                <div className="wh-stat"><div className="wv"><CountUp value={weekVol} format={nf} /></div><div className="wl">7-day</div></div>
+            {searchQuery ? (
+              <div className="eb" style={{ margin: '6px 2px 10px' }}>
+                {exercises.length} result{exercises.length === 1 ? '' : 's'} for “{searchQuery}”
               </div>
-            </div>
+            ) : (
+              <div className="eb" style={{ margin: '6px 2px 10px' }}>
+                Today · {loggedTodayCount} of {exercises.length} logged
+              </div>
+            )}
+
+            {searchQuery && exercises.length === 0 && (
+              <div className="empty">No exercises match. Try another term.</div>
+            )}
 
             {exercises.map((ex) => {
-              const done = isLoggedToday(bucket, ex.n);
               const todayCount = bucket.logs.filter((l) => l.ex === ex.n && l.date === today).length;
               const isPrimary = ex === firstUnlogged;
               const isSelected = selectedEx === ex.n;
-              const isAnimating = justLogged === ex.n;
               const v = defaultVals(ex);
               const metric = exMetric(ex, sport);
               const weight = isWeightMetric(ex, sport);
-              const lastLog = bucket.logs.filter((l) => l.ex === ex.n).slice(-1)[0];
+              const last = lastLog(bucket, ex.n);
               const isDetailOpen = openDetail === ex.n;
               const pend = pending[ex.n] ?? {};
-              const best = weight ? bestE1RM(bucket.logs, ex.n) : 0;
-              const plates = weight ? platesFor(v.kg ?? 0, state.bar, unit) : [];
 
               return (
                 <div
                   key={ex.n}
                   data-ex={ex.n}
-                  className={`ex${isPrimary ? ' primary' : ''}${isSelected ? ' selected' : ''}${isAnimating ? ' logged-anim' : ''}${prFlash === ex.n ? ' pr-flash' : ''}${draggingName === ex.n ? ' dragging' : ''}`}
+                  className={`ex${isPrimary ? ' primary' : ''}${isSelected ? ' selected' : ''}${prFlash === ex.n ? ' pr-flash' : ''}${draggingName === ex.n ? ' dragging' : ''}`}
                 >
                   <span className="ex-wipe" aria-hidden="true" />
-                  <span className="ex-stamp" aria-hidden="true">Logged</span>
-                  <div className="ex-head">
+                  <div className="ex-head" onClick={() => toggleDetail(ex.n)}>
                     {!searchQuery && (
-                      <div className="ex-grip" onPointerDown={(e) => startDrag(e, ex.n)}>
-                        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7" r="1.5" /><circle cx="15" cy="7" r="1.5" /><circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" /><circle cx="9" cy="17" r="1.5" /><circle cx="15" cy="17" r="1.5" /></svg>
-                      </div>
+                      <span className="ex-grip" title="Drag to reorder" onPointerDown={(e) => startDrag(e, ex.n)} onClick={(e) => e.stopPropagation()}>
+                        <GripIcon />
+                      </span>
                     )}
-                    <MTile color={catColor(sport, ex.group ?? category)} />
-                    <div className="ex-txt" onClick={() => setOpenDetail(isDetailOpen ? null : ex.n)}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="ex-name">
                         {ex.n}
-                        {best > 0 && weight && <span className="pr-star">e1RM {best}</span>}
+                        {ex.group && searchQuery && <span className="search-grouptag">{ex.group}</span>}
                       </div>
                       <div className="ex-target">{ex.t}</div>
-                      {lastLog && <div className="lastlog">Last: <b>{formatLogMetric(lastLog, unit)}</b></div>}
+                      <div className="lastlog">
+                        <TrendLine exName={ex.n} bucket={bucket} unit={unit} />
+                      </div>
                     </div>
-                    {done ? (
-                      <button type="button" className="ex-undo" onClick={() => undoLast(ex.n)}>Undo</button>
+                    {todayCount > 0 ? (
+                      <button type="button" className="ex-undo" onClick={(e) => undoLast(ex.n, e)} aria-label="Undo last set">
+                        <UndoIcon />
+                        <span>Undo{todayCount > 1 ? ` ·${todayCount}` : ''}</span>
+                      </button>
                     ) : (
-                      <span className="chev" onClick={() => setOpenDetail(isDetailOpen ? null : ex.n)}>›</span>
+                      <span className="chev">{isDetailOpen ? '▴' : '▾'}</span>
                     )}
                   </div>
+
+                  {last && (
+                    <button type="button" className="qf-chip" onClick={(e) => quickFill(ex, e)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                      Repeat last {fmtLogVal(last, unit)}
+                    </button>
+                  )}
 
                   <div className="controls">
                     {weight ? (
@@ -348,7 +479,7 @@ export function WorkoutTab() {
                         <div className="stepper">
                           <button type="button" onClick={() => bump(ex, 'kg', -weightStep(unit))}>−</button>
                           <div className="val">
-                            <input type="number" value={kgDisplay(v.kg ?? 0, unit)} onChange={(e) => setVal(ex.n, { ...v, kg: kgCanonical(+e.target.value, unit) })} />
+                            <input type="number" step={unit === 'lb' ? 1 : 0.5} value={kgDisplay(v.kg ?? 0, unit)} onChange={(e) => setVal(ex.n, { ...v, kg: kgCanonical(+e.target.value, unit) })} />
                             <span className="unit">{unit}</span>
                           </div>
                           <button type="button" onClick={() => bump(ex, 'kg', weightStep(unit))}>+</button>
@@ -361,14 +492,11 @@ export function WorkoutTab() {
                           </div>
                           <button type="button" onClick={() => bump(ex, 'reps', 1)}>+</button>
                         </div>
-                        {plates.length > 0 && (
-                          <div className="platebar">{plates.map((p, i) => <span key={i}>{unit === 'lb' ? kgDisplay(p, 'lb') : p}</span>)}</div>
-                        )}
                       </>
                     ) : (
                       <>
                         <div className="stepper">
-                          <button type="button" onClick={() => bump(ex, 'v1', metric === 'reps' ? -1 : -1)}>−</button>
+                          <button type="button" onClick={() => bump(ex, 'v1', -1)}>−</button>
                           <div className="val">
                             <input type="number" value={v.v1 ?? ex.start} onChange={(e) => setVal(ex.n, { ...v, v1: +e.target.value })} />
                             <span className="unit">{exU1(ex, sport)}</span>
@@ -387,43 +515,69 @@ export function WorkoutTab() {
                         )}
                       </>
                     )}
-                    <button type="button" className={`logbtn${isAnimating ? ' swipe done is-done firing' : ''}`} onClick={() => handleLog(ex)} aria-label="Log">
+                    <button type="button" className="logbtn" onClick={(e) => handleLog(ex, e)} aria-label="Log set">
                       <span className="lb-fill" aria-hidden="true" />
-                      <span className="lb-slash" aria-hidden="true" />
                       <span className="lb-ic lb-log">Log</span>
                       <span className="lb-ic lb-chk" aria-hidden="true"><CheckGlyph /></span>
                     </button>
                   </div>
 
+                  {weight && <PlateBar kg={v.kg ?? 0} bar={state.bar} unit={unit} />}
+
                   {isDetailOpen && (
                     <div className="detail open">
-                      <div className="set-seg">
-                        {(['warm', 'work', 'drop'] as const).map((t) => (
-                          <button key={t} type="button" className={pend.set_type === t ? 'on' : ''} onClick={() => setPending(ex.n, { set_type: t })}>{t}</button>
-                        ))}
+                      <div className="set-ed">
+                        <div className="se-lab">This set</div>
+                        <div className="seg">
+                          {SET_TYPES.map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              className={(pend.set_type ?? 'work') === t.id ? 'on' : ''}
+                              onClick={() => setPending(ex.n, { set_type: t.id })}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="se-lab2">RPE — how hard?</div>
+                        <div className="rpe-row">
+                          {[7, 7.5, 8, 8.5, 9, 9.5, 10].map((r) => (
+                            <button
+                              key={r}
+                              type="button"
+                              className={pend.rpe === r ? 'on' : ''}
+                              onClick={() => setPending(ex.n, { rpe: pend.rpe === r ? undefined : r })}
+                            >
+                              {r}
+                            </button>
+                          ))}
+                        </div>
+                        <input
+                          className="se-note"
+                          placeholder="Note — felt strong, paused reps…"
+                          value={pend.note ?? ''}
+                          onChange={(e) => setPending(ex.n, { note: e.target.value })}
+                        />
                       </div>
-                      <div className="rpe-row">
-                        {[7, 7.5, 8, 8.5, 9, 9.5, 10].map((r) => (
-                          <button key={r} type="button" className={pend.rpe === r ? 'on' : ''} onClick={() => setPending(ex.n, { rpe: pend.rpe === r ? undefined : r })}>RPE {r}</button>
-                        ))}
-                      </div>
-                      <input className="detail-note" placeholder="Note for next log…" value={pend.note ?? ''} onChange={(e) => setPending(ex.n, { note: e.target.value })} />
                       <div className="mini-hist">
-                        {bucket.logs.filter((l) => l.ex === ex.n).slice(-5).map((l) => (
-                          <div key={l.id}>{formatLogMetric(l, unit)} — {l.date}</div>
+                        {bucket.logs.filter((l) => l.ex === ex.n).slice(-5).reverse().map((l) => (
+                          <div key={l.id}>{fmtDate(l.date)} — <b>{fmtLogVal(l, unit)}</b></div>
                         ))}
                       </div>
-                      <button type="button" className="removex" onClick={() => removeExercise(ex.n)}>Remove exercise</button>
+                      <button type="button" className="removex" onClick={() => removeExercise(ex.n)}>Remove this exercise from the list</button>
                     </div>
                   )}
                 </div>
               );
             })}
 
-            <button type="button" className="addcard" onClick={() => setModal('addExercise')}>
-              <span className="ac-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg></span>
-              Add exercise to {category}
-            </button>
+            {!searchQuery && (
+              <button type="button" className="addcard" onClick={() => setModal('addExercise')}>
+                <span className="ac-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg></span>
+                <span>Add exercise to {category}</span>
+              </button>
+            )}
           </main>
         </>
       ) : (
@@ -434,19 +588,15 @@ export function WorkoutTab() {
             return (
               <div key={date}>
                 <div className="session-date">{fmtDate(date)}<small>{nf(vol)}</small></div>
-                {dayLogs.map((l) => {
-                  const g = groupOfSport(sport, l.ex, bucket.custom);
-                  return (
-                    <div key={l.id} className="hentry">
-                      <MTile sm color={g ? catColor(sport, g) : undefined} />
-                      <div className="he-txt">
-                        <div className="he-name">{l.ex}</div>
-                        <div className="he-sub">{formatLogMetric(l, unit)}</div>
-                      </div>
-                      <button type="button" className="del" onClick={() => deleteLog(l.id)}>✕</button>
+                {dayLogs.map((l) => (
+                  <div key={l.id} className="hentry">
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{l.ex}</div>
+                      <div className="small">{fmtLogVal(l, unit)}</div>
                     </div>
-                  );
-                })}
+                    <button type="button" className="del" onClick={() => deleteLog(l.id)}>✕</button>
+                  </div>
+                ))}
               </div>
             );
           })}
