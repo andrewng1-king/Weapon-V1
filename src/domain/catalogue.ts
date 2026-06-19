@@ -84,7 +84,7 @@ export const PRESETS: Record<Group, PresetExercise[]> = {
 export const GROUPS: Group[] = Object.keys(PRESETS) as Group[];
 
 export const GROUP_COLORS: Record<Group, string> = {
-  Chest: '#c2a878',
+  Chest: '#e8ff00',
   Back: '#9bbf8f',
   Shoulders: '#5b9bff',
   Arms: '#c08a6a',

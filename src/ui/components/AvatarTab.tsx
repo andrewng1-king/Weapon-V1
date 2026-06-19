@@ -123,7 +123,7 @@ export function AvatarTab() {
         <div className="p2-aprow">
           <span className="p2-aplab">Theme</span>
           <div className="p2-acset">
-            <span className={`p2-acsw${state.dev.color === 0 ? ' on' : ''}`} style={{ background: '#c2a878' }} onClick={() => setAccent(0)} />
+            <span className={`p2-acsw${state.dev.color === 0 ? ' on' : ''}`} style={{ background: '#e8ff00' }} onClick={() => setAccent(0)} />
           </div>
         </div>
       </div>

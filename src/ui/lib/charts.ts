@@ -1,11 +1,11 @@
 import { GROUP_COLORS } from '@/domain/catalogue';
 import type { Group } from '@/domain/types';
 
-const ACCENT = '#c2a878';
+const ACCENT = '#e8ff00';
 const TRACK = 'rgba(255,255,255,.08)';
-const INK = '#e9e7e3';
-const FAINT = '#6a6a67';
-const MUTED = '#9b9a96';
+const INK = '#f5f5f3';
+const FAINT = '#5d5d5a';
+const MUTED = '#8a8a86';
 
 export function drawGauge(ctx: CanvasRenderingContext2D, W: number, H: number, pct: number) {
   const cx = W / 2, cy = H - 14, R = Math.max(0, Math.min(W / 2 - 12, H - 26));

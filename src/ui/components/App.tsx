@@ -11,6 +11,7 @@ import { AvatarTab } from './AvatarTab';
 import { MenuDrawer } from './MenuDrawer';
 import { Modals } from './Modals';
 import { SpeedDial } from './SpeedDial';
+import { RankScreen } from './RankScreen';
 import { Recorder } from './Recorder';
 import { Toast } from './Toast';
 
@@ -42,6 +43,7 @@ export function App() {
       <section className={cls('avatar')}><AvatarTab /></section>
       <BottomNav />
       <SpeedDial />
+      <RankScreen />
       <Recorder />
       <MenuDrawer />
       <Modals />

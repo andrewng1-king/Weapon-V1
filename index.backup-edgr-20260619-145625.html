@@ -3,47 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0a0a0a">
-<title>EDGR — Strength Tracker</title>
+<meta name="theme-color" content="#0a0a0b">
+<title>ATHLETE — Strength Tracker</title>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="EDGR">
+<meta name="apple-mobile-web-app-title" content="ATHLETE">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Archivo:ital,wght@0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Archivo:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
 <style>
 /* =====================================================================
-   EDGR — Blackout palette + Volt accent (restyle of WEAPON)
+   WEAPON — Premium blackout (Direction A: refined, game layer kept)
    One type system: Inter (UI) + Archivo (numbers). Sentence case.
-   Flat near-black panels. One restrained volt accent. No ambient motion.
+   Flat near-black panels. One restrained bronze accent. No ambient motion.
    ===================================================================== */
 :root{
   --app:480px;
-  --page:#0a0a0a;
-  --panel:#161616;
-  --panel-2:#1f1f1f;
-  --ink:#f5f5f3;
-  --muted:#8a8a86;
-  --faint:#5d5d5a;
-  --accent:#e8ff00;          /* volt — used sparingly */
-  --accent-dim:#9aa600;
-  --accent-rgb:232,255,0;
-  --accent-ink:#0a0a0a;
-  --good:#3ddc97;            /* climbed — positive delta */
-  --warn:#e0603a;            /* slipping — regression */
-  --gold:#e8ff00;
-  --line:rgba(255,255,255,.08);
+  --page:#0a0a0b;
+  --panel:#0e0f11;
+  --panel-2:#141517;
+  --ink:#e9e7e3;
+  --muted:#9b9a96;
+  --faint:#6a6a67;
+  --accent:#c2a878;          /* warm bronze — used sparingly */
+  --accent-dim:#7d6c47;
+  --accent-rgb:194,168,120;
+  --accent-ink:#15120b;
+  --good:#9bbf8f;            /* quiet sage — positive delta */
+  --warn:#c08a6a;            /* quiet clay — regression */
+  --gold:#c2a878;
+  --line:rgba(255,255,255,.07);
   --line-2:rgba(255,255,255,.04);
   --track:rgba(255,255,255,.08);
   --hair:rgba(255,255,255,.14);
   --nav-bg:rgba(10,10,11,.92);
   --grid:rgba(255,255,255,.10);
   --step-bg:#000;
-  --step-ink:#f5f5f3;
+  --step-ink:#e9e7e3;
   --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --num:'Archivo','Inter',sans-serif;
   --display:'Inter',system-ui,sans-serif;
@@ -76,10 +76,8 @@ header{position:relative;max-width:var(--app);margin:0 auto;display:flex;align-i
 .hdr-menu{width:36px;height:36px;flex-shrink:0;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .hdr-menu svg{width:18px;height:18px;}
 .brand-wrap{flex:1;min-width:0;}
-/* ===== EDGR wordmark ===== */
-.brand-logo{display:inline-flex;align-items:center;cursor:pointer;-webkit-user-select:none;user-select:none;line-height:1;font-size:1.85rem;height:30px;}
-.brand-logo .em-part{font-family:'Archivo',var(--sans);font-weight:900;letter-spacing:-.01em;color:var(--ink);text-transform:uppercase;}
-.brand-logo .em-g{font-family:'Archivo',var(--sans);font-weight:900;letter-spacing:-.01em;color:var(--accent);text-transform:uppercase;}
+/* ===== ATHLETE / WEAPON switchable logo ===== */
+.brand-logo{display:inline-flex;align-items:center;cursor:pointer;-webkit-user-select:none;user-select:none;line-height:1;font-size:1.65rem;height:30px;}
 .brand-logo .bl-part{font-family:'Archivo',var(--sans);font-weight:800;font-style:italic;letter-spacing:-.045em;color:var(--ink);transform:skewX(-6deg);text-transform:uppercase;}
 .brand-logo .bl-bolt{display:inline-flex;align-items:center;color:var(--gold);margin:0 -.02em;}
 .brand-logo .bl-bolt svg{width:.6em;height:1.08em;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));}
@@ -167,7 +165,7 @@ main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 @keyframes lbswipe{0%{transform:scaleX(0);opacity:1}100%{transform:scaleX(1);opacity:0}}
 .logbtn.is-done svg{animation:chkin 240ms var(--e-out);}
 @keyframes chkin{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
-.logbtn.is-done{background:none;color:var(--accent);border-color:rgba(232,255,0,.4);}
+.logbtn.is-done{background:none;color:var(--accent);border-color:rgba(194,168,120,.4);}
 
 .detail{display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:12px;}
 .detail.open{display:block;}
@@ -715,50 +713,6 @@ body.dragging-active{-webkit-user-select:none;user-select:none;}
 .home-compete .hc-name{font-size:.92rem;font-weight:700;color:var(--ink);margin-top:1px;}
 .home-compete .hc-sub{font-size:.72rem;color:var(--muted);margin-top:2px;}
 .home-compete .hc-go{flex:0 0 auto;color:var(--muted);}
-
-/* ===== EDGR Rank leaderboard screen ===== */
-.sd-opt .nu{margin-left:2px;background:var(--accent);color:var(--accent-ink);font-size:.55rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:99px;}
-.rankscreen{position:fixed;inset:0;z-index:116;background:var(--page);display:flex;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(14px);transition:opacity var(--t-screen),transform var(--t-screen) var(--e-out);max-width:var(--app);margin:0 auto;left:0;right:0;}
-.rankscreen.on{opacity:1;pointer-events:auto;transform:none;}
-.rank-body{flex:1;overflow-y:auto;padding:4px 18px calc(30px + env(safe-area-inset-bottom));}
-.rank-body::-webkit-scrollbar{width:0;}
-.rank-sub{font-size:.8rem;color:var(--muted);margin:12px 2px 14px;}
-.rank-sub b{color:var(--accent);font-weight:700;}
-.rk-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;}
-.rk-chips::-webkit-scrollbar{height:0;}
-.rk-chip{flex:0 0 auto;border:1px solid #3a3a3a;background:var(--panel);color:var(--muted);border-radius:99px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;}
-.rk-chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
-.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:22px 0 4px;}
-.pod{display:flex;flex-direction:column;align-items:center;flex:1;}
-.pod .pav{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--num);font-weight:800;font-size:1.05rem;border:2px solid transparent;}
-.pod.first .pav{width:66px;height:66px;font-size:1.3rem;background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 0 24px -4px rgba(var(--accent-rgb),.5);}
-.pod .pn{font-size:.8rem;font-weight:700;margin-top:8px;color:var(--ink);}
-.pod .ps{font-family:var(--num);font-weight:800;font-size:1.05rem;margin-top:2px;}
-.pod .pr{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700;margin-top:1px;}
-.pod .plat{width:100%;border-radius:10px 10px 0 0;margin-top:10px;background:var(--panel);border:1px solid var(--line);border-bottom:0;}
-.pod.first .plat{height:66px;background:rgba(var(--accent-rgb),.08);border-color:rgba(var(--accent-rgb),.4);}
-.pod.second .plat{height:46px;}
-.pod.third .plat{height:32px;}
-.pod .star{color:var(--accent);font-size:1.1rem;margin-bottom:2px;}
-.rank-list-lab{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:18px 2px 8px;}
-.rrow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);}
-.rrow .rk{width:18px;font-family:var(--num);font-weight:700;color:var(--muted);font-size:.95rem;text-align:center;}
-.rrow .rav{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--num);font-weight:700;font-size:.8rem;flex:0 0 auto;}
-.rrow .rmid{flex:1;min-width:0;}
-.rrow .rname{font-weight:700;font-size:.9rem;color:var(--ink);}
-.rrow .rmeta{font-size:.7rem;color:var(--muted);margin-top:1px;}
-.rrow .rsc{font-family:var(--num);font-weight:800;font-size:1.05rem;text-align:right;color:var(--ink);}
-.rrow .rdelta{font-size:.7rem;font-weight:700;margin-top:1px;text-align:right;}
-.rdelta.rup{color:var(--good);}
-.rdelta.rdown{color:var(--warn);}
-.rdelta.rsame{color:var(--faint);}
-.youcard{background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.4);border-radius:16px;padding:14px;display:flex;align-items:center;gap:12px;margin-top:14px;position:sticky;bottom:0;}
-.youcard .rk{width:18px;text-align:center;font-family:var(--num);font-weight:800;color:var(--accent);}
-.youcard .ylab{font-family:var(--num);font-weight:800;color:var(--accent);font-size:.85rem;}
-.youcard .rmid{flex:1;min-width:0;}
-.youcard .rname{color:var(--ink);font-weight:700;font-size:.9rem;}
-.youcard .rmeta{font-size:.7rem;color:var(--muted);margin-top:1px;}
-.youcard .yedge{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:700;text-align:right;}
 </style>
 </head>
 <body data-sport="gym">
@@ -889,10 +843,6 @@ body.dragging-active{-webkit-user-select:none;user-select:none;}
 <div class="sd-scrim" id="sdScrim" onclick="toggleSpeedDial(true)"></div>
 <div class="speeddial" id="speedDial">
   <div class="sd-options" id="sdOptions">
-    <button class="sd-opt" type="button" onclick="sdAction('rank')">
-      <span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
-      <span class="sd-lab">Rank</span> <span class="nu">NEW</span>
-    </button>
     <button class="sd-opt" type="button" onclick="sdAction('record')">
       <span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/></svg></span>
       <span class="sd-lab">Record</span>
@@ -982,52 +932,6 @@ body.dragging-active{-webkit-user-select:none;user-select:none;}
   </div>
   <div class="cp-seg" id="cpSeg"></div>
   <div class="cp-body" id="cpBody"></div>
-</div>
-
-<!-- EDGR Rank — weekly edge leaderboard -->
-<div class="rankscreen" id="rankScreen">
-  <div class="cp-head">
-    <button class="cp-x" type="button" onclick="closeRank()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    <h2>Weekly edge</h2>
-  </div>
-  <div class="rank-body">
-    <div class="rank-sub">Jun 16 – 22 · <b>4 days left</b></div>
-    <div class="rk-chips">
-      <button class="rk-chip on" type="button" onclick="pickRkChip(this)">Following</button>
-      <button class="rk-chip" type="button" onclick="pickRkChip(this)">City</button>
-      <button class="rk-chip" type="button" onclick="pickRkChip(this)">Global</button>
-    </div>
-    <div class="podium">
-      <div class="pod second">
-        <div class="pav" style="background:#3a2520;color:#e0603a">RP</div>
-        <div class="pn">r.pace</div><div class="ps" style="color:#e0603a">4,210</div><div class="pr">2nd</div>
-        <div class="plat"></div>
-      </div>
-      <div class="pod first">
-        <div class="star">★</div>
-        <div class="pav">MK</div>
-        <div class="pn">minh_k</div><div class="ps" style="color:var(--accent)">5,840</div><div class="pr">1st</div>
-        <div class="plat"></div>
-      </div>
-      <div class="pod third">
-        <div class="pav" style="background:#16302a;color:#3ddc97">JL</div>
-        <div class="pn">jess.lifts</div><div class="ps" style="color:#3ddc97">3,670</div><div class="pr">3rd</div>
-        <div class="plat"></div>
-      </div>
-    </div>
-    <div class="rank-list-lab">Ranks 4 – 8</div>
-    <div class="rrow"><div class="rk">4</div><div class="rav" style="background:#241f3a;color:#9b8cff">AN</div><div class="rmid"><div class="rname">ana.n</div><div class="rmeta">6 sessions · run + lift</div></div><div><div class="rsc">3,120</div><div class="rdelta rup">+2 ↑</div></div></div>
-    <div class="rrow"><div class="rk">5</div><div class="rav" style="background:#1e2c3a;color:#7eb6e8">DT</div><div class="rmid"><div class="rname">duc.tri</div><div class="rmeta">5 sessions · triathlon</div></div><div><div class="rsc">2,880</div><div class="rdelta rsame">— same</div></div></div>
-    <div class="rrow"><div class="rk">6</div><div class="rav" style="background:#3a2a16;color:#e0a23a">HN</div><div class="rmid"><div class="rname">hung.nx</div><div class="rmeta">4 sessions · strength</div></div><div><div class="rsc">2,540</div><div class="rdelta rdown">−1 ↓</div></div></div>
-    <div class="rrow"><div class="rk">7</div><div class="rav" style="background:#2a2a2a;color:#bbb">SK</div><div class="rmid"><div class="rname">sam.k</div><div class="rmeta">4 sessions · hybrid</div></div><div><div class="rsc">2,310</div><div class="rdelta rup">+1 ↑</div></div></div>
-    <div class="rrow"><div class="rk">8</div><div class="rav" style="background:#2a2a2a;color:#bbb">LO</div><div class="rmid"><div class="rname">leo.runs</div><div class="rmeta">3 sessions · run</div></div><div><div class="rsc">2,090</div><div class="rdelta rdown">−2 ↓</div></div></div>
-    <div class="youcard">
-      <div class="rk">9</div>
-      <div class="ylab">YOU</div>
-      <div class="rmid"><div class="rname" id="rankYouName">andrew.np</div><div class="rmeta">3 sessions · 1,920 pts</div></div>
-      <div><div class="yedge">Your edge</div><div class="rdelta rup">+3 ↑</div></div>
-    </div>
-  </div>
 </div>
 
 <!-- log throwdown / submit score modal -->
@@ -1218,24 +1122,25 @@ function S(){ ensureSports(db); return db.sports[db.sport]||db.sports.gym; }
 function curSport(){ ensureSports(db); return db.sport; }
 
 /* ---- accent colours (single colour — backgrounds come from light/dark theme) ----
-   'Volt' is the EDGR default accent. */
+   'Gold' is the premium default. Green + Orange from Andrew's reference boards.
+   Hexes are mid-toned so they read on both dark and light surfaces. */
 const ACCENT_SET=[
-  {name:'Volt',   hex:'#e8ff00', rgb:'232,255,0', dim:'#9aa600', ink:'#0a0a0a'},
+  {name:'Gold',   hex:'#c2a878', rgb:'194,168,120', dim:'#7d6c47', ink:'#15120b'},
 ];
 function curAccent(){ const i=(db.dev&&db.dev.color)||0; return ACCENT_SET[i]||ACCENT_SET[0]; }
 function accent(){ return curAccent().hex; }
 function accentRGB(){ return curAccent().rgb; }
 function applyColors(){ const a=curAccent(); const s=document.body.style;
   s.setProperty('--accent',a.hex); s.setProperty('--accent-dim',a.dim);
-  s.setProperty('--accent-rgb',a.rgb); s.setProperty('--accent-ink',a.ink||'#0a0a0a');
+  s.setProperty('--accent-rgb',a.rgb); s.setProperty('--accent-ink',a.ink||'#15120b');
   s.setProperty('--gold',a.hex); }
 
 /* ---- light / dark surface themes ---- */
 const THEMES={
-  dark:{ page:'#0a0a0a', panel:'#161616', panel2:'#1f1f1f', tx:'#f5f5f3', muted:'#8a8a86', faint:'#5d5d5a',
-    line:'rgba(255,255,255,.08)', line2:'rgba(255,255,255,.04)', track:'rgba(255,255,255,.08)',
-    hair:'rgba(255,255,255,.14)', nav:'rgba(10,10,10,.92)', grid:'rgba(255,255,255,.10)',
-    step:'#000000', stepInk:'#f5f5f3' },
+  dark:{ page:'#0a0a0b', panel:'#0e0f11', panel2:'#141517', tx:'#e9e7e3', muted:'#9b9a96', faint:'#6a6a67',
+    line:'rgba(255,255,255,.07)', line2:'rgba(255,255,255,.04)', track:'rgba(255,255,255,.08)',
+    hair:'rgba(255,255,255,.14)', nav:'rgba(10,10,11,.92)', grid:'rgba(255,255,255,.10)',
+    step:'#000000', stepInk:'#e9e7e3' },
   light:{ page:'#ece9e3', panel:'#f6f4ef', panel2:'#ffffff', tx:'#1b1a17', muted:'#5f5d57', faint:'#8b8881',
     line:'rgba(0,0,0,.10)', line2:'rgba(0,0,0,.05)', track:'rgba(0,0,0,.09)',
     hair:'rgba(0,0,0,.16)', nav:'rgba(246,244,239,.92)', grid:'rgba(0,0,0,.10)',
@@ -1264,10 +1169,10 @@ function syncLayoutUI(){ const b=document.getElementById('mmLayoutState'); if(b)
 /* chart neutral helpers — flip with theme */
 function isLight(){ return curTheme()==='light'; }
 function cGrid(){ return isLight()?'rgba(0,0,0,.10)':'rgba(255,255,255,.10)'; }
-function cFaint(){ return isLight()?'#8b8881':'#5d5d5a'; }
+function cFaint(){ return isLight()?'#8b8881':'#6a6a67'; }
 function cTrack(){ return isLight()?'rgba(0,0,0,.14)':'rgba(255,255,255,.14)'; }
-function cInk(){ return isLight()?'#1b1a17':'#f5f5f3'; }
-function accentInk(){ return curAccent().ink||'#0a0a0a'; }
+function cInk(){ return isLight()?'#1b1a17':'#e9e7e3'; }
+function accentInk(){ return curAccent().ink||'#15120b'; }
 function devLevel(){ const o=db.dev&&db.dev.lvl; return (o&&o>=1&&o<=MAXLVL)?o:levelInfo().lvl; }
 
 /* ================= helpers ================= */
@@ -1446,11 +1351,11 @@ const PRESETS={
     {n:'Leg Raise', t:'Lower abs — floor', start:0},
   ],
 };
-const GROUP_COLORS={'Chest':'#e8ff00','Back':'#3ddc97','Shoulders':'#5b9bff','Arms':'#e0603a','Legs':'#b06ae0','Core':'#cfc9cd'};
+const GROUP_COLORS={'Chest':'#c2a878','Back':'#9bbf8f','Shoulders':'#5b9bff','Arms':'#c08a6a','Legs':'#b06ae0','Core':'#cfc9cd'};
 /* ================= sports catalogue (9 disciplines) =================
    metric: weight (kg×reps) · dist (distance + time/elev) · reps · hold (seconds) · time (min) · rounds
    Each exercise can override m / u1 / u2 / start. Goal kinds: cal · dist · dist_m · time · elev · sessions. */
-const CAT_PALETTE=['#e8ff00','#3ddc97','#5b9bff','#e0603a','#b06ae0','#cfc9cd','#6ad0c8','#e0b76a'];
+const CAT_PALETTE=['#c2a878','#9bbf8f','#5b9bff','#c08a6a','#b06ae0','#cfc9cd','#6ad0c8','#e0b76a'];
 const SP_ICON={
   gym:'<path d="M2 9v6M5.5 7v10M18.5 7v10M22 9v6M5.5 12h13"/>',
   run:'<circle cx="13" cy="4.5" r="2"/><path d="M6 21l3.5-6 3-2.5 1.5 4 3 3M9.5 12.5 8 8l5-1.5 3 3 3 .5"/>',
@@ -1584,12 +1489,12 @@ function initPullRefresh(){
 function shareSession(){
   const secs=Math.floor((rec.lastSecs!=null?rec.lastSecs:0));
   const cal=Math.round(rec.lastCal||0), xp=rec.lastXp||0, n=rec.lastItems?rec.lastItems.length:0;
-  const lines=['💪 EDGR — session complete',
+  const lines=['💪 WEAPON — session complete',
     `⏱ ${fmtClock(secs)} · 🔥 ${cal} kcal · ⚡ +${xp} XP`,
     n?`Logged ${n} exercise${n===1?'':'s'}:`:'',
     ...(rec.lastItems||[]).map(i=>`• ${i.ex} (+${i.xp} XP)`)].filter(Boolean);
   const text=lines.join('\n');
-  if(navigator.share){ navigator.share({title:'EDGR session', text}).catch(()=>{}); }
+  if(navigator.share){ navigator.share({title:'WEAPON session', text}).catch(()=>{}); }
   else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(()=>toast('Summary copied'),()=>toast('Could not share')); }
   else { toast('Sharing not supported'); }
 }
@@ -1640,18 +1545,9 @@ function toggleSpeedDial(forceClose){
 function sdAction(which){
   toggleSpeedDial(true);
   if(which==='record'){ toggleRecord(); }
-  else if(which==='rank'){ openRank(); }
   else if(which==='challenges'){ openCompete('challenges'); }
   else if(which==='friends'){ openCompete('crews'); }
 }
-function openRank(){
-  const el=document.getElementById('rankScreen'); if(!el) return;
-  try{ const p=(db.profile||{}); const nm=(p.name||'').trim();
-    if(nm){ document.getElementById('rankYouName').textContent=nm.toLowerCase().replace(/\s+/g,'.'); } }catch(e){}
-  el.classList.add('on');
-}
-function closeRank(){ const el=document.getElementById('rankScreen'); if(el) el.classList.remove('on'); }
-function pickRkChip(el){ el.parentElement.querySelectorAll('.rk-chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); }
 document.addEventListener('pointerdown',e=>{
   const sd=document.getElementById('speedDial');
   if(sd && sd.classList.contains('open') && !sd.contains(e.target)) toggleSpeedDial(true);
@@ -1774,11 +1670,14 @@ function renderHead(){ /* subtitle removed — kept as no-op for existing caller
 
 /* ===== switchable logo (tap header to switch) ===== */
 const BOLT_SVG='<svg viewBox="0 0 28 44" aria-hidden="true"><path d="M17.5 0 1.5 26.5H11L8.5 44 26.5 16H16.5L21.5 0Z"/></svg>';
+function logoParts(){ return db.logo==='weapon' ? ['WEA','ON'] : ['ATH','ETE']; }
 function renderBrand(){
   const el=document.getElementById('brand'); if(!el) return;
-  el.innerHTML='<span class="em-part">ED</span><span class="em-g">G</span><span class="em-part">R</span>';
+  const p=logoParts();
+  el.innerHTML='<span class="bl-part">'+p[0]+'</span><span class="bl-bolt">'+BOLT_SVG+'</span><span class="bl-part">'+p[1]+'</span>';
 }
-function cycleLogo(){ renderBrand(); toast('EDGR'); }
+function cycleLogo(){ db.logo=(db.logo==='weapon')?'athlete':'weapon'; save(); renderBrand();
+  toast(db.logo==='weapon'?'WEAPON logo':'ATHLETE logo'); }
 
 /* ================= group dropdown ================= */
 function buildDropdown(){
@@ -2658,7 +2557,7 @@ function spotifyEmbed(link){
 function renderIDCard(){
   const el=document.getElementById('idCard'); if(!el) return;
   const p=db.profile||{};
-  if(!p.name && !p.job && !p.bio && !p.spotify && !p.height && !p.photo && !p.cover){ el.innerHTML='<div class="idc-setup" onclick="openSettings()">+ Set up your EDGR ID</div>'; return; }
+  if(!p.name && !p.job && !p.bio && !p.spotify && !p.height && !p.photo && !p.cover){ el.innerHTML='<div class="idc-setup" onclick="openSettings()">+ Set up your WEAPON ID</div>'; return; }
   const name=p.name||'Unnamed Athlete';
   const initials=((p.name||'WX').trim().split(/\s+/).map(s=>s[0]||'').join('').slice(0,2).toUpperCase())||'WX';
   const sub=p.job || rankFor(devLevel()).name;
@@ -2726,7 +2625,7 @@ function closePlanner(){ const m=document.getElementById('plannerModal'); if(m) 
 
 /* ---- the signature benchmark workout ---- */
 const WEAPON_THROWDOWN={
-  name:'The EDGR Throwdown', tag:'Signature WOD', cap:20*60, scoreType:'time',
+  name:'The Weapon Throwdown', tag:'Signature WOD', cap:20*60, scoreType:'time',
   blurb:'For time · 20-min cap. The fixed benchmark — every score is comparable.',
   stations:['1 km Run','50 Wall Balls (9/6 kg)','40 Calorie Row','30 Burpees Over Bar','20 Pull-ups','1 km Run'],
   scaled:['1 km Run','40 Wall Balls (6/4 kg)','30 Calorie Row','30 Burpees','20 Ring Rows','1 km Run'],

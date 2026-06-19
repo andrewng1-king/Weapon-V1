@@ -20,6 +20,7 @@ interface UIState {
   searchQuery: string;
   menuOpen: boolean;
   modal: Modal;
+  rankOpen: boolean;
   recording: RecordingState;
   vals: Record<string, { kg: number; reps: number }>;
 
@@ -29,6 +30,7 @@ interface UIState {
   setSearchQuery: (q: string) => void;
   setMenuOpen: (open: boolean) => void;
   setModal: (m: Modal) => void;
+  setRankOpen: (open: boolean) => void;
   setVal: (ex: string, kg: number, reps: number) => void;
   startRecording: () => void;
   stopRecording: () => void;
@@ -45,6 +47,7 @@ export const useUIStore = create<UIState>((set) => ({
   searchQuery: '',
   menuOpen: false,
   modal: null,
+  rankOpen: false,
   recording: { active: false, startTime: 0, elapsed: 0, logs: [], minimized: false },
   vals: {},
 
@@ -54,6 +57,7 @@ export const useUIStore = create<UIState>((set) => ({
   setSearchQuery: (q) => set({ searchQuery: q }),
   setMenuOpen: (open) => set({ menuOpen: open }),
   setModal: (m) => set({ modal: m }),
+  setRankOpen: (open) => set({ rankOpen: open }),
   setVal: (ex, kg, reps) => set((s) => ({ vals: { ...s.vals, [ex]: { kg, reps } } })),
   startRecording: () => set({ recording: { active: true, startTime: Date.now(), elapsed: 0, logs: [], minimized: false } }),
   stopRecording: () => set((s) => ({ recording: { ...s.recording, active: false } })),

@@ -9,7 +9,6 @@ import { fmtK, fmtVol, todayStr } from '@/domain/format';
 export function HomeTab() {
   const { state } = useWeapon();
   const setTab = useUIStore((s) => s.setTab);
-  const setRankOpen = useUIStore((s) => s.setRankOpen);
 
   const [dateStr, setDateStr] = useState('');
   const [greeting, setGreeting] = useState('');
@@ -42,18 +41,6 @@ export function HomeTab() {
         <div className="hh-xpbar"><i style={{ width: `${Math.round((li.pct || 0) * 100)}%` }} /></div>
         <div className="hh-xptext">{li.lvl < MAXLVL ? `${li.into} / ${li.need} XP to next level` : 'Max level reached'}</div>
       </div>
-
-      <button className="home-compete" onClick={() => setRankOpen(true)}>
-        <div className="hc-score">1,920</div>
-        <div className="hc-mid">
-          <div className="hc-lab">Weekly edge · rank 9</div>
-          <div className="hc-name">You&apos;re +3 this week</div>
-          <div className="hc-sub">340 pts behind hung.nx — log a session</div>
-        </div>
-        <div className="hc-go">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 6l6 6-6 6" /></svg>
-        </div>
-      </button>
 
       <div className="home-stats">
         <div className="hs-card"><b>{stats.streak}</b><span>Day streak</span></div>
