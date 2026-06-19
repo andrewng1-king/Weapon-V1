@@ -376,6 +376,14 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 .ht-num{font-family:var(--num);font-weight:700;font-size:2rem;color:var(--accent);line-height:1;}
 .ht-cta{width:100%;margin-top:16px;border:none;border-radius:13px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.92rem;padding:14px;cursor:pointer;transition:transform .1s;}
 .ht-cta:active{transform:scale(.98);}
+.home-greet{font-family:var(--display);font-weight:700;font-size:1.7rem;letter-spacing:-.02em;color:var(--ink);margin:6px 2px 14px;line-height:1.1;}
+.home-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+.home-tile{position:relative;display:block;width:100%;aspect-ratio:3/4;border:none;border-radius:20px;overflow:hidden;background:#0c0c0d;cursor:pointer;padding:0;box-shadow:0 14px 32px -18px rgba(0,0,0,.8);transition:transform .14s;}
+.home-tile:active{transform:scale(.975);}
+.home-tile .ht-img{position:absolute;top:0;left:0;right:0;height:70%;background-size:cover;background-position:center;background-color:#1a1a1c;}
+.home-tile .ht-img::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(12,12,13,0) 58%,#0c0c0d);}
+.home-tile .ht-cap{position:absolute;left:0;right:0;bottom:0;height:30%;display:flex;align-items:center;padding:0 16px;background:#0c0c0d;}
+.home-tile .ht-cap>span{font-family:var(--display);font-weight:800;font-size:1.2rem;letter-spacing:.005em;color:var(--accent);}
 
 /* ===== speed dial (quick actions) ===== */
 .speeddial{position:fixed;left:max(18px,calc(50% - min(var(--app),100%)/2 + 18px));bottom:calc(86px + env(safe-area-inset-bottom));z-index:45;display:flex;flex-direction:column;align-items:flex-start;gap:11px;}
@@ -385,10 +393,18 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 .sd-opt .sd-ic{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 .sd-opt .sd-ic svg{width:17px;height:17px;}
 .sd-opt:active{transform:scale(.97);}
-.sd-fab{width:48px;height:48px;border-radius:50%;background:var(--accent);border:1px solid var(--accent-dim);color:var(--accent-ink);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px -8px rgba(var(--accent-rgb),.6);transition:transform .15s,box-shadow .2s;}
-.sd-fab .sd-sign{font-size:1.55rem;font-weight:300;line-height:1;}
-.sd-fab:active{transform:scale(.93);}
-.sd-fab.recording{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.55),0 10px 24px -8px rgba(0,0,0,.7);}
+/* side-tab launcher (Apollo/Seamless-style edge tab) */
+.sd-fab{width:40px;min-height:106px;padding:14px 0;border:1px solid rgba(255,255,255,.12);border-radius:16px 0 0 16px;background:#0c0c0d;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;box-shadow:-8px 10px 26px -12px rgba(0,0,0,.75);transition:transform .15s,box-shadow .2s,border-color .2s;}
+.speeddial.edge-left .sd-fab{border-radius:0 16px 16px 0;box-shadow:8px 10px 26px -12px rgba(0,0,0,.75);}
+.sd-fab .sd-bolt{width:16px;height:26px;fill:#fff;flex:0 0 auto;}
+.sd-fab .sd-label{writing-mode:vertical-rl;font-size:.6rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#fff;}
+.sd-fab .sd-sign{display:none;}
+.sd-fab:active{transform:scale(.96);}
+.sd-fab.open{border-color:var(--accent);}
+.sd-fab.recording{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),-8px 10px 26px -12px rgba(0,0,0,.75);}
+/* dim + blur backdrop when the launcher menu is open */
+.sd-scrim{position:fixed;inset:0;z-index:44;background:rgba(0,0,0,.34);-webkit-backdrop-filter:blur(3px) brightness(.7);backdrop-filter:blur(3px) brightness(.7);opacity:0;pointer-events:none;transition:opacity .22s;}
+.sd-scrim.show{opacity:1;pointer-events:auto;}
 
 /* ===== bottom nav ===== */
 .bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(var(--app),100%);background:var(--nav-bg);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;align-items:center;z-index:40;padding:8px 12px calc(8px + env(safe-area-inset-bottom));}
@@ -824,6 +840,7 @@ body.dragging-active{-webkit-user-select:none;user-select:none;}
 </section>
 
 <!-- speed dial (quick actions) -->
+<div class="sd-scrim" id="sdScrim" onclick="toggleSpeedDial(true)"></div>
 <div class="speeddial" id="speedDial">
   <div class="sd-options" id="sdOptions">
     <button class="sd-opt" type="button" onclick="sdAction('record')">
@@ -839,7 +856,11 @@ body.dragging-active{-webkit-user-select:none;user-select:none;}
       <span class="sd-lab">Friends</span>
     </button>
   </div>
-  <button class="sd-fab" id="sdFab" type="button" aria-label="Quick actions"><span class="sd-sign">+</span></button>
+  <button class="sd-fab" id="sdFab" type="button" aria-label="Quick actions">
+    <svg class="sd-bolt" viewBox="0 0 28 44" aria-hidden="true"><path d="M17.5 0 1.5 26.5H11L8.5 44 26.5 16H16.5L21.5 0Z"/></svg>
+    <span class="sd-label">Actions</span>
+    <span class="sd-sign">+</span>
+  </button>
 </div>
 
 <!-- bottom nav -->
@@ -1077,12 +1098,21 @@ function load(){
 }
 function save(){ lsSet(KEY, JSON.stringify(db)); }
 /* ---- sport model: each sport keeps its own bucket; global level, per-sport goals ---- */
-const SPORT_IDS=['gym','run','calisthenics','hyrox','swimming','boxing','bodyweight','trail','trekking'];
+const SPORT_IDS=['gym','run','calisthenics','hyrox'];
 function ensureSports(d){
   d=d||db; if(!d.sports||typeof d.sports!=='object') d.sports={};
   if(d.strength && !d.sports.gym) d.sports.gym=fixBucket(d.strength);
   if(d.endurance && !d.sports.run) d.sports.run=fixBucket(d.endurance);
   delete d.strength; delete d.endurance;
+  /* one-time: fold the retired 'bodyweight' sport into calisthenics so logs aren't lost */
+  if(d.sports.bodyweight){
+    const bw=d.sports.bodyweight;
+    if(bw && bw.logs && bw.logs.length){
+      d.sports.calisthenics=d.sports.calisthenics||{};
+      d.sports.calisthenics.logs=(d.sports.calisthenics.logs||[]).concat(bw.logs);
+    }
+    delete d.sports.bodyweight;
+  }
   SPORT_IDS.forEach(id=>{ d.sports[id]=fixBucket(d.sports[id]); });
   if(SPORT_IDS.indexOf(d.sport)<0) d.sport=(d.mode==='endurance')?'run':'gym';
   delete d.mode; d.goals=d.goals||{};
@@ -1350,11 +1380,11 @@ const SPORTS={
   }},
   calisthenics:{name:'Calisthenics', metric:'reps', u1:'reps',
     goal:{kind:'sessions',label:'Weekly sessions',unit:'days',def:4}, cats:{
-    'Push':[{n:'Push-up',t:'Chest · triceps',start:15},{n:'Dip',t:'Lower chest · triceps',start:8},{n:'Pike push-up',t:'Shoulders — HSPU progression',start:8},{n:'Pseudo-planche push-up',t:'Planche lean',start:6},{n:'Handstand push-up',t:'Vertical press',start:3}],
-    'Pull':[{n:'Pull-up',t:'Lats · upper back',start:8},{n:'Chin-up',t:'Lats · biceps',start:8},{n:'Australian row',t:'Horizontal pull',start:12},{n:'Archer pull-up',t:'Unilateral strength',start:4},{n:'Muscle-up',t:'Pull + transition + dip',start:2}],
+    'Push':[{n:'Push-up',t:'Chest · triceps',start:15},{n:'Diamond push-up',t:'Triceps',start:10},{n:'Wide push-up',t:'Chest',start:12},{n:'Dip',t:'Lower chest · triceps',start:8},{n:'Bench dip',t:'Triceps',start:12},{n:'Pike push-up',t:'Shoulders — HSPU progression',start:8},{n:'Pseudo-planche push-up',t:'Planche lean',start:6},{n:'Handstand push-up',t:'Vertical press',start:3}],
+    'Pull':[{n:'Pull-up',t:'Lats · upper back',start:8},{n:'Chin-up',t:'Lats · biceps',start:8},{n:'Australian row',t:'Horizontal pull',start:12},{n:'Inverted row',t:'Horizontal pull',start:12},{n:'Towel row',t:'Grip · back',start:10},{n:'Archer pull-up',t:'Unilateral strength',start:4},{n:'Muscle-up',t:'Pull + transition + dip',start:2}],
     'Skills':[{n:'Tuck planche',t:'Hold — seconds',m:'hold',u1:'sec',start:8},{n:'Straddle planche',t:'Hold — seconds',m:'hold',u1:'sec',start:5},{n:'Tuck front lever',t:'Hold — seconds',m:'hold',u1:'sec',start:8},{n:'Front lever',t:'Hold — seconds',m:'hold',u1:'sec',start:5},{n:'Back lever',t:'Hold — seconds',m:'hold',u1:'sec',start:6},{n:'Handstand',t:'Free balance — seconds',m:'hold',u1:'sec',start:10}],
-    'Core':[{n:'Hanging leg raise',t:'Lower abs',start:10},{n:'Toes-to-bar',t:'Full core',start:8},{n:'L-sit',t:'Hold — seconds',m:'hold',u1:'sec',start:10},{n:'Hollow hold',t:'Hold — seconds',m:'hold',u1:'sec',start:20},{n:'Dragon flag',t:'Anti-extension',start:5}],
-    'Legs':[{n:'Pistol squat',t:'Single-leg strength',start:6},{n:'Shrimp squat',t:'Single-leg + balance',start:5},{n:'Sissy squat',t:'Quads',start:10},{n:'Nordic curl',t:'Hamstrings',start:5}],
+    'Core':[{n:'Hanging leg raise',t:'Lower abs',start:10},{n:'Toes-to-bar',t:'Full core',start:8},{n:'L-sit',t:'Hold — seconds',m:'hold',u1:'sec',start:10},{n:'Hollow hold',t:'Hold — seconds',m:'hold',u1:'sec',start:20},{n:'Plank',t:'Hold — seconds',m:'hold',u1:'sec',start:45},{n:'Crunch',t:'Upper abs',start:20},{n:'Leg raise',t:'Lower abs',start:15},{n:'Mountain climber',t:'Core · cardio',start:30},{n:'Russian twist',t:'Obliques',start:30},{n:'Dragon flag',t:'Anti-extension',start:5}],
+    'Legs':[{n:'Pistol squat',t:'Single-leg strength',start:6},{n:'Shrimp squat',t:'Single-leg + balance',start:5},{n:'Sissy squat',t:'Quads',start:10},{n:'Bodyweight squat',t:'Quads · glutes',start:20},{n:'Lunge',t:'Quads · glutes',start:16},{n:'Bulgarian split squat',t:'Single-leg',start:12},{n:'Glute bridge',t:'Glutes · hamstrings',start:18},{n:'Calf raise',t:'Calves',start:25},{n:'Wall sit',t:'Hold — seconds',m:'hold',u1:'sec',start:45},{n:'Nordic curl',t:'Hamstrings',start:5}],
   }},
   hyrox:{name:'HYROX', metric:'reps',
     goal:{kind:'sessions',label:'Weekly sessions',unit:'days',def:3}, cats:{
@@ -1363,46 +1393,6 @@ const SPORTS={
     'Sled':[{n:'Sled push',t:'4×12.5m',m:'dist',u1:'m',start:50},{n:'Sled pull',t:'4×12.5m',m:'dist',u1:'m',start:50}],
     'Carry':[{n:'Farmers carry',t:'200m',m:'dist',u1:'m',start:200},{n:'Sandbag lunges',t:'100m',m:'dist',u1:'m',start:100}],
     'Functional':[{n:'Burpee broad jumps',t:'80m',m:'dist',u1:'m',start:80},{n:'Wall balls',t:'100 reps',m:'reps',u1:'reps',start:100}],
-  }},
-  swimming:{name:'Swim', metric:'dist', u1:'m', u2:'min', v2kind:'time',
-    goal:{kind:'dist_m',label:'Weekly distance',unit:'m',def:4000}, cats:{
-    'Freestyle':[{n:'Freestyle 50m',t:'Front crawl — speed',start:50},{n:'Freestyle 100m',t:'Front crawl',start:100},{n:'Freestyle 200m',t:'Aerobic',start:200},{n:'Freestyle 400m',t:'Endurance',start:400}],
-    'Backstroke':[{n:'Backstroke 50m',t:'On the back — flutter kick',start:50},{n:'Backstroke 100m',t:'Backstroke',start:100}],
-    'Breaststroke':[{n:'Breaststroke 50m',t:'Technical stroke',start:50},{n:'Breaststroke 100m',t:'Breaststroke',start:100}],
-    'Butterfly':[{n:'Butterfly 25m',t:'Most demanding stroke',start:25},{n:'Butterfly 50m',t:'Butterfly',start:50}],
-    'Drills & IM':[{n:'Kick drill',t:'Legs only',start:100},{n:'Pull drill',t:'Arms only',start:100},{n:'IM 100m',t:'All four strokes',start:100},{n:'IM 200m',t:'Individual medley',start:200}],
-  }},
-  boxing:{name:'Boxing', metric:'time', u1:'min',
-    goal:{kind:'time',label:'Weekly minutes',unit:'min',def:120}, cats:{
-    'Bag work':[{n:'Heavy bag',t:'Power · rounds',m:'rounds',u1:'rounds',u2:'min',start:3},{n:'Speed bag',t:'Timing · rhythm',start:3},{n:'Double-end bag',t:'Accuracy · reflex',start:3}],
-    'Pad work':[{n:'Mitts / pads',t:'Combinations on the pads',m:'rounds',u1:'rounds',u2:'min',start:3}],
-    'Shadowboxing':[{n:'Shadowboxing',t:'Form · movement',m:'rounds',u1:'rounds',u2:'min',start:3},{n:'Footwork drill',t:'Step-drag · pivots',start:5}],
-    'Sparring':[{n:'Sparring',t:'Live rounds',m:'rounds',u1:'rounds',u2:'min',start:3}],
-    'Combos':[{n:'1-2 (jab-cross)',t:'Reps of the combo',m:'reps',u1:'reps',start:50},{n:'1-2-3 (+lead hook)',t:'Reps of the combo',m:'reps',u1:'reps',start:40},{n:'Slip & counter',t:'Defense → counter',m:'reps',u1:'reps',start:30}],
-    'Conditioning':[{n:'Jump rope',t:'Foot speed · cardio',start:10},{n:'Core circuit',t:'Rotational power',start:10}],
-  }},
-  bodyweight:{name:'Bodyweight', metric:'reps', u1:'reps',
-    goal:{kind:'sessions',label:'Weekly sessions',unit:'days',def:4}, cats:{
-    'Push':[{n:'Push-up',t:'Chest · triceps',start:15},{n:'Diamond push-up',t:'Triceps',start:10},{n:'Wide push-up',t:'Chest',start:12},{n:'Pike push-up',t:'Shoulders',start:8},{n:'Bench dip',t:'Triceps',start:12}],
-    'Pull':[{n:'Pull-up',t:'Lats · upper back',start:8},{n:'Chin-up',t:'Lats · biceps',start:8},{n:'Inverted row',t:'Horizontal pull',start:12},{n:'Towel row',t:'Grip · back',start:10}],
-    'Legs':[{n:'Bodyweight squat',t:'Quads · glutes',start:20},{n:'Lunge',t:'Quads · glutes',start:16},{n:'Bulgarian split squat',t:'Single-leg',start:12},{n:'Glute bridge',t:'Glutes · hamstrings',start:18},{n:'Calf raise',t:'Calves',start:25},{n:'Wall sit',t:'Hold — seconds',m:'hold',u1:'sec',start:45}],
-    'Core':[{n:'Plank',t:'Hold — seconds',m:'hold',u1:'sec',start:45},{n:'Crunch',t:'Upper abs',start:20},{n:'Leg raise',t:'Lower abs',start:15},{n:'Mountain climber',t:'Core · cardio',start:30},{n:'Russian twist',t:'Obliques',start:30},{n:'Hollow hold',t:'Hold — seconds',m:'hold',u1:'sec',start:25}],
-  }},
-  trail:{name:'Trail', metric:'dist', u1:'km', u2:'m↑', v2kind:'elev',
-    goal:{kind:'elev',label:'Weekly vert',unit:'m↑',def:1000}, cats:{
-    'Easy trail':[{n:'Easy trail run',t:'Aerobic on terrain',start:6}],
-    'Climb':[{n:'Uphill / vert push',t:'Sustained climbing',start:5},{n:'Vertical km',t:'1000m of D+',start:5}],
-    'Descent':[{n:'Technical descent',t:'Downhill skill · control',start:5}],
-    'Long':[{n:'Long trail run',t:'Time on feet',start:18}],
-    'Intervals':[{n:'Hill repeats',t:'Power · leg strength',start:6}],
-  }},
-  trekking:{name:'Trek', metric:'dist', u1:'km', u2:'m↑', v2kind:'elev',
-    goal:{kind:'dist',label:'Weekly distance',unit:'km',def:15}, cats:{
-    'Day hike':[{n:'Day hike',t:'Distance + vert',start:10}],
-    'Summit':[{n:'Summit push',t:'Big ascent',start:12}],
-    'Multi-day':[{n:'Multi-day leg',t:'Section of a thru-hike',start:18}],
-    'Incline':[{n:'Incline training',t:'Treadmill / hill incline',start:6}],
-    'Loaded':[{n:'Ruck / loaded carry',t:'Pack weight on terrain',start:8}],
   }},
 };
 function sportDef(){ return SPORTS[curSport()]||SPORTS.gym; }
@@ -1548,6 +1538,8 @@ function toggleSpeedDial(forceClose){
   const sd=document.getElementById('speedDial'); if(!sd) return;
   const open = forceClose===true ? false : !sd.classList.contains('open');
   sd.classList.toggle('open', open);
+  const scrim=document.getElementById('sdScrim'); if(scrim) scrim.classList.toggle('show', open);
+  const fab=document.getElementById('sdFab'); if(fab) fab.classList.toggle('open', open);
   const sign=document.querySelector('#sdFab .sd-sign'); if(sign) sign.textContent=open?'−':'+';
 }
 function sdAction(which){
@@ -1569,7 +1561,7 @@ function applyFabPos(){
   const p=fabPos(); const {minY,maxY}=fabBounds();
   const yTop=Math.round(minY + p.y*(maxY-minY));
   const appW=Math.min(window.innerWidth, 480);
-  const sideMargin=Math.max(16, (window.innerWidth-appW)/2 + 14);
+  const sideMargin=Math.max(0, (window.innerWidth-appW)/2);
   sd.style.top='auto'; sd.style.bottom=Math.round(window.innerHeight-(yTop+FAB_SIZE))+'px';
   if(p.side==='right'){ sd.classList.add('edge-right'); sd.style.right=sideMargin+'px'; sd.style.left='auto'; }
   else { sd.classList.remove('edge-right'); sd.style.left=sideMargin+'px'; sd.style.right='auto'; }
@@ -1647,23 +1639,25 @@ function renderHome(){
   const rk=rankFor(dl);
   const pct=Math.round((li.pct||0)*100);
   el.innerHTML=
-    '<div class="home-hero">'+
-      '<div class="hh-date">'+esc(dateStr)+'</div>'+
-      '<div class="hh-greet">'+greet+', '+esc(avName())+'</div>'+
-      '<div class="hh-rank"><span class="hh-lv">Lv '+dl+'</span>'+esc(rk.name)+'</div>'+
-      '<div class="hh-xpbar"><i style="width:'+pct+'%"></i></div>'+
-      '<div class="hh-xptext">'+(li.lvl<MAXLVL?(li.into+' / '+li.need+' XP to next level'):'Max level reached')+'</div>'+
-    '</div>'+
-    '<div class="home-stats">'+
-      '<div class="hs-card"><b>'+st.streak+'</b><span>Day streak</span></div>'+
-      '<div class="hs-card"><b>'+fmtK(st.sessions)+'</b><span>Sessions</span></div>'+
-      '<div class="hs-card"><b>'+fmtVol(st.vol)+'</b><span>Volume kg</span></div>'+
-    '</div>'+
+    '<div class="home-greet">'+greet+', '+esc(avName())+'</div>'+
     homeCompeteCardHTML()+
-    '<div class="card home-today">'+
-      '<div class="ht-row"><div><div class="ht-lab">Logged today</div><div class="ht-sub">Sets recorded so far</div></div><div class="ht-num">'+loggedToday+'</div></div>'+
-      '<button class="ht-cta" onclick="switchTab(\'workout\')">Start training</button>'+
+    '<div class="home-tiles">'+
+      homeTileHTML('train','Train','images/train.jpg')+
+      homeTileHTML('run','Run','images/run.jpg')+
+      homeTileHTML('challenge','Challenge','images/challenge.jpg')+
+      homeTileHTML('social','Social','images/social.jpg')+
     '</div>';
+}
+function homeTileHTML(key,label,img){
+  return '<button class="home-tile" type="button" onclick="goHomeTile(\''+key+'\')">'+
+    '<span class="ht-img" style="background-image:url(\''+img+'\')"></span>'+
+    '<span class="ht-cap"><span>'+esc(label)+'</span></span>'+
+  '</button>';
+}
+function goHomeTile(which){
+  if(which==='train'){ setSport('gym'); switchTab('workout'); }
+  else if(which==='run'){ setSport('run'); switchTab('workout'); }
+  else { toast('Coming soon'); }
 }
 /* applyMode kept as the name the cloud-sync layer calls after loading a user blob */
 function applyMode(){
