@@ -129,6 +129,8 @@ main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 .controls{display:flex;gap:10px;margin-top:14px;}
 .stepper{flex:1;display:flex;align-items:center;background:var(--step-bg);border:1px solid var(--line);border-radius:13px;overflow:hidden;min-height:54px;}
 .stepper button{width:44px;align-self:stretch;background:none;border:none;color:var(--step-ink);font-size:1.4rem;font-weight:500;cursor:pointer;}
+.stepper button:first-child{color:var(--muted);}
+.stepper button:last-child{color:var(--accent);}
 .stepper button:active{background:var(--line);}
 .stepper .val{flex:1;text-align:center;min-width:0;}
 .stepper .val input{width:100%;background:none;border:none;color:var(--step-ink);font-family:var(--num);font-weight:700;font-size:1.15rem;text-align:center;outline:none;}
@@ -208,6 +210,120 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
   100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);}
 }
 
+/* ── Focused (expanded) card ── */
+.ex.ex-focused{
+  border-color:rgba(var(--accent-rgb),.26);
+  animation:promote .32s var(--e-out);
+}
+@keyframes promote{
+  from{opacity:.35;transform:scale(.975)}
+  to{opacity:1;transform:scale(1)}
+}
+
+/* ── Delta chip (progression cue) ── */
+.ex-delta-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:.78rem;font-weight:600;border-radius:99px;
+  padding:3px 10px;margin:9px 0 2px;
+}
+.ex-delta-chip.up{color:var(--good);background:rgba(61,220,151,.1);}
+.ex-delta-chip.down{color:var(--warn);background:rgba(224,96,58,.1);}
+.ex-delta-chip.flat{color:var(--muted);background:rgba(255,255,255,.05);}
+
+/* ── Compact (collapsed) card ── */
+.ex-compact{
+  display:flex;align-items:center;gap:11px;
+  background:var(--panel);border:1px solid rgba(255,255,255,.05);
+  border-radius:14px;padding:11px 13px;margin-bottom:10px;
+  cursor:pointer;
+  transition:background var(--t-micro) var(--e-out),
+             border-color var(--t-micro) var(--e-out);
+}
+.ex-compact:active{background:var(--panel-2);}
+.ex-compact:hover{border-color:var(--line);}
+.ex-compact .ex-name{font-size:.92rem;font-weight:600;}
+.ex-compact .ex-target{font-size:.72rem;color:var(--faint);margin-top:2px;}
+.ex-compact .ex-txt{flex:1;min-width:0;overflow:hidden;}
+
+/* ── Exercise card icons ── */
+.ex-icon-volt{
+  width:38px;height:38px;flex:none;border-radius:11px;
+  background:rgba(var(--accent-rgb),.1);border:1px solid rgba(var(--accent-rgb),.2);
+  display:flex;align-items:center;justify-content:center;color:var(--accent);
+}
+.ex-icon-volt svg{width:19px;height:19px;}
+.ex-icon-dim{
+  width:32px;height:32px;flex:none;border-radius:9px;
+  background:var(--panel-2);
+  display:flex;align-items:center;justify-content:center;color:var(--muted);
+}
+.ex-icon-dim svg{width:16px;height:16px;}
+
+/* ── Plate / load string row ── */
+.ex-plate-row{
+  display:flex;align-items:center;gap:8px;
+  margin-top:11px;font-size:.78rem;color:var(--muted);flex-wrap:wrap;
+}
+.ex-plate-chip{
+  display:inline-flex;align-items:center;
+  background:var(--step-bg);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:4px 9px;color:var(--ink);cursor:pointer;
+  font-size:.78rem;white-space:nowrap;
+  transition:background var(--t-micro) var(--e-out);
+}
+.ex-plate-chip:active{background:var(--line);}
+.ex-plate-last{color:var(--faint);white-space:nowrap;}
+
+/* inline Log button for compact rows */
+.logbtn-sm{
+  flex:none;border-radius:10px;
+  border:1px solid rgba(var(--accent-rgb),.4);
+  background:none;color:var(--accent);
+  font-family:var(--sans);font-weight:700;font-size:.82rem;
+  padding:7px 16px;cursor:pointer;
+  transition:background var(--t-micro) var(--e-out),
+             transform var(--t-press) var(--e-out);
+}
+.logbtn-sm:active{
+  background:rgba(var(--accent-rgb),.12);
+  transform:scale(.93);
+}
+
+/* ── Done group ── */
+.done-group{margin-top:8px;}
+.done-group-hdr{
+  display:flex;align-items:center;gap:10px;
+  font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);font-weight:600;padding:14px 2px 8px;
+}
+.done-group-hdr::after{
+  content:'';flex:1;height:1px;background:var(--line);
+}
+.done-row{
+  display:flex;align-items:center;gap:11px;
+  background:rgba(var(--accent-rgb),.04);
+  border:1px solid rgba(var(--accent-rgb),.12);
+  border-radius:13px;padding:10px 12px;margin-bottom:8px;
+  animation:donein .36s var(--e-out);
+}
+@keyframes donein{
+  from{opacity:0;transform:translateY(-8px)}
+  to{opacity:1;transform:none}
+}
+.done-check{
+  width:26px;height:26px;flex:none;border-radius:50%;
+  background:rgba(var(--accent-rgb),.14);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+}
+.done-check svg{width:13px;height:13px;}
+.done-row .ex-txt{flex:1;min-width:0;overflow:hidden;}
+.done-row .ex-name{font-size:.9rem;font-weight:600;color:var(--muted);}
+.done-meta{
+  font-family:var(--num);font-weight:700;font-size:.84rem;
+  color:var(--ink);white-space:nowrap;margin-left:auto;padding-right:4px;
+}
+
+/* @media: reduce-motion collapses celebrations to fades */
 @media(prefers-reduced-motion:reduce){
   .ex.logged-anim .ex-wipe,.ex.logged-anim .ex-stamp,.ex.pr-flash{animation:none!important;}
 }

@@ -11,8 +11,35 @@ import { showToast, showToastAction } from './Toast';
 import { createLogEntry, isLoggedToday } from '@/application/workoutUsecases';
 import type { PresetExercise, LogEntry } from '@/domain/types';
 
-function prefersReduced(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const nf = (n: number) => Math.round(n).toLocaleString('en-US');
+const RING_CIRC = 125.66; // 2π × 20
+
+const BARBELL_NAMES = new Set([
+  'Bench Press','Incline Press','Decline Press','Barbell Row','Pendlay Row',
+  'Overhead Press','Squat','Front Squat','Deadlift','Romanian Deadlift',
+  'T-Bar Row','Skull Crusher','Close-grip Bench Press','Upright Row','Barbell Curl','Shrug',
+]);
+function barWeight(name: string): number {
+  return BARBELL_NAMES.has(name) ? 20 : 0;
+}
+function fmtN(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+function fmtPlate(name: string, kg: number, reps: number): string {
+  const bar = barWeight(name);
+  if (kg === 0) return `Bodyweight · ${reps} reps`;
+  if (bar > 0) {
+    const perSide = Math.max(0, (kg - bar) / 2);
+    return `${fmtN(kg)} kg · ${bar} bar + ${fmtN(perSide)}/side · ${reps} reps`;
+  }
+  return `${fmtN(kg)} kg · ${reps} reps`;
+}
+function fmtLast(kg: number, reps: number): string {
+  return `${kg === 0 ? 'BW' : fmtN(kg)} × ${reps}`;
+}
+
+function prefersReduced() {
+  return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
 }
 
 function haptic(pattern: number | number[]): void {
@@ -297,29 +324,99 @@ export function WorkoutTab() {
                 .filter(Boolean)
                 .join(' ');
 
-              return (
-                <div key={ex.n} data-ex={ex.n} className={cardCls}>
-                  <span className="ex-wipe" aria-hidden="true" />
-                  <span className="ex-stamp" aria-hidden="true">Logged</span>
+                if (!isFocused) {
+                  // compact row
+                  return (
+                    <div
+                      key={ex.n}
+                      className={`ex-compact${isAnimating ? ' logged-anim-compact' : ''}`}
+                      onClick={() => setExpandedId(ex.n)}
+                    >
+                      <div className="ex-icon-dim">
+                        <BarbellIcon />
+                      </div>
+                      <div className="ex-txt">
+                        <div className="ex-name">
+                          {ex.n}
+                          {searchQuery && ex.group && <span className="search-grouptag">{ex.group}</span>}
+                        </div>
+                        {lastLog && <div className="ex-target">last · {fmtLast(lastLog.kg, lastLog.reps)}</div>}
+                      </div>
+                    </div>
+                  );
+                }
 
+                // focused (expanded) card
+                const deltaKg = lastLog ? Math.round((v.kg - lastLog.kg) * 2) / 2 : 0;
+                const hasDelta = !!lastLog;
+                const deltaClass = deltaKg > 0 ? 'up' : deltaKg < 0 ? 'down' : 'flat';
+                const deltaStr = deltaKg > 0
+                  ? `▲ +${deltaKg} kg vs last`
+                  : deltaKg < 0
+                    ? `▼ ${Math.abs(deltaKg)} kg vs last`
+                    : '→ matches last';
+
+                return (
                   <div
                     className="ex-head"
                     onClick={() => setOpenDetail((cur) => (cur === ex.n ? null : ex.n))}
                   >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="ex-name">
-                        {ex.n}
-                        {searchQuery && ex.group ? (
-                          <span className="search-grouptag">{ex.group}</span>
-                        ) : null}
+                    <span className="ex-wipe" aria-hidden="true" />
+                    <span className="ex-stamp" aria-hidden="true">Logged</span>
+
+                    <div className="ex-head" onClick={() => setOpenDetail(isDetailOpen ? null : ex.n)}>
+                      <div className="ex-icon-volt">
+                        <BarbellIcon />
                       </div>
-                      <div className="ex-target">{ex.t}</div>
-                      <div className="lastlog">{trendNode(ex)}</div>
+                      <div className="ex-txt">
+                        <div className="ex-name">
+                          {ex.n}
+                          {searchQuery && ex.group && <span className="search-grouptag">{ex.group}</span>}
+                        </div>
+                        <div className="ex-target">{ex.t}</div>
+                      </div>
                     </div>
-                    {todayN ? (
-                      <span className="pill-done">Logged{todayN > 1 ? ` ×${todayN}` : ''}</span>
-                    ) : (
-                      <span className="chev">{isDetailOpen ? '▴' : '▾'}</span>
+
+                    {hasDelta && (
+                      <div className={`ex-delta-chip ${deltaClass}`}>{deltaStr}</div>
+                    )}
+
+                    <div className="controls">
+                      <div className="stepper">
+                        <button onClick={() => setVal(ex.n, Math.max(0, v.kg - 2.5), v.reps)}>−</button>
+                        <button onClick={() => setVal(ex.n, v.kg + 2.5, v.reps)}>+</button>
+                      </div>
+                      <div className="stepper">
+                        <button onClick={() => setVal(ex.n, v.kg, Math.max(1, v.reps - 1))}>−</button>
+                        <button onClick={() => setVal(ex.n, v.kg, v.reps + 1)}>+</button>
+                      </div>
+                      <button
+                        className={`logbtn${isAnimating ? ' swipe done' : ''}`}
+                        onClick={() => handleLog(ex)}
+                        aria-label="Log set"
+                      >
+                        <span className="lb-fill" aria-hidden="true" />
+                        <span className="lb-ic lb-log">Log</span>
+                        <span className="lb-ic lb-chk" aria-hidden="true"><CheckGlyph /></span>
+                      </button>
+                    </div>
+
+                    <div className="ex-plate-row">
+                      <span className="ex-plate-chip">{fmtPlate(ex.n, v.kg, v.reps)}</span>
+                      {lastLog && (
+                        <span className="ex-plate-last">last · {fmtLast(lastLog.kg, lastLog.reps)}</span>
+                      )}
+                    </div>
+
+                    {isDetailOpen && (
+                      <div className="detail open">
+                        <div className="mini-hist">
+                          {bucket.logs.filter((l) => l.ex === ex.n).slice(-5).map((l) => (
+                            <div key={l.id}><b>{l.kg}kg × {l.reps}</b> — {l.date}</div>
+                          ))}
+                        </div>
+                        <button className="removex" onClick={() => removeExercise(ex.n)}>Remove exercise</button>
+                      </div>
                     )}
                   </div>
 

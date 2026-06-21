@@ -122,7 +122,8 @@ main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 
 /* ===== exercise card ===== */
 .ex{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;}
-.ex.primary{background:var(--panel);border-color:var(--line);box-shadow:none;}
+.ex.primary{background:var(--panel);border-color:rgba(var(--accent-rgb),.26);box-shadow:none;animation:promote .32s var(--e-out);}
+@keyframes promote{from{opacity:.35;transform:scale(.975)}to{opacity:1;transform:scale(1)}}
 /* click-selected highlight (option C — techy hairline + accent edge); stays until another card or empty space is clicked */
 .ex.selected{background:var(--panel-2);border-color:rgba(var(--accent-rgb),.3);}
 .ex.selected::after{content:'';position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);z-index:7;}
@@ -149,6 +150,8 @@ main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 .controls{display:flex;gap:10px;margin-top:14px;}
 .stepper{flex:1;display:flex;align-items:center;background:var(--step-bg);border:1px solid var(--line);border-radius:13px;overflow:hidden;min-height:54px;}
 .stepper button{width:44px;align-self:stretch;background:none;border:none;color:var(--step-ink);font-size:1.4rem;font-weight:500;cursor:pointer;}
+.stepper button:first-child{color:var(--muted);}
+.stepper button:last-child{color:var(--accent);}
 .stepper button:active{background:var(--line);}
 .stepper .val{flex:1;text-align:center;min-width:0;}
 .stepper .val input{width:100%;background:none;border:none;color:var(--step-ink);font-family:var(--num);font-weight:700;font-size:1.15rem;text-align:center;outline:none;}
@@ -181,11 +184,16 @@ main{max-width:var(--app);margin:0 auto;padding:6px 16px 0;}
 .qf-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:none;border:1px solid rgba(var(--accent-rgb),.35);color:var(--accent);font-size:.74rem;font-weight:600;border-radius:9px;padding:5px 10px;cursor:pointer;}
 .qf-chip svg{width:13px;height:13px;}
 .qf-chip:active{background:rgba(var(--accent-rgb),.12);transform:scale(.97);transition:transform var(--t-press) var(--e-out);}
-.platebar{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:11px;font-size:.74rem;color:var(--muted);}
-.platebar .pb-lab{color:var(--faint);text-transform:uppercase;letter-spacing:.05em;font-weight:600;font-size:.62rem;}
-.platebar .pb-chip{font-family:var(--num);font-weight:700;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;}
-.platebar .pb-bar{color:var(--faint);}
+.platebar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:11px;font-size:.78rem;color:var(--muted);}
+.platebar .pb-chip{display:inline-flex;align-items:center;background:var(--step-bg);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 9px;color:var(--ink);font-size:.78rem;}
+.platebar .pb-last{color:var(--faint);}
 .platebar i{color:var(--faint);font-style:normal;}
+
+/* ── Exercise card icons ── */
+.ex-icon-volt{width:38px;height:38px;flex:none;border-radius:11px;background:rgba(var(--accent-rgb),.1);border:1px solid rgba(var(--accent-rgb),.2);display:flex;align-items:center;justify-content:center;color:var(--accent);}
+.ex-icon-volt svg{width:19px;height:19px;}
+.ex-icon-dim{width:32px;height:32px;flex:none;border-radius:9px;background:var(--panel-2);display:flex;align-items:center;justify-content:center;color:var(--muted);}
+.ex-icon-dim svg{width:16px;height:16px;}
 .set-ed{margin-bottom:14px;}
 .se-lab,.se-lab2{font-size:.62rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin:0 2px 8px;}
 .se-lab2{margin-top:13px;}
@@ -1301,12 +1309,13 @@ function plates(totalKg){
   for(const s of sizesKg){ while(perSide>=s-1e-6){ out.push(lb?Math.round(s*LB):s); perSide=round2(perSide-s); } }
   return {ok:true, list:out, barDisp:Math.round(bar*(lb?LB:1)), leftover:round1(perSide*(lb?LB:1))};
 }
-function plateHTML(kg){
-  const p=plates(kg);
-  if(!p.ok) return `<div class="platebar"><i>bar only · ${p.barDisp} ${curUnit()}</i></div>`;
-  return `<div class="platebar"><span class="pb-lab">Per side</span>`+
-    p.list.map(x=>`<span class="pb-chip">${x}</span>`).join('')+
-    `<span class="pb-bar">+ ${p.barDisp} bar</span></div>`;
+function plateHTML(kg,reps){
+  const p=plates(kg); const unit=curUnit(); const kgDisp=dispW(kg);
+  const lastStr=reps!=null?` · ${reps} reps`:'';
+  if(!p.ok) return `<div class="platebar"><span class="pb-chip">${kgDisp} ${unit} · bar only${lastStr}</span></div>`;
+  const perSide=round1((kgDisp-p.barDisp)/2);
+  const perStr=Number.isInteger(perSide)?String(perSide):perSide.toFixed(1);
+  return `<div class="platebar"><span class="pb-chip">${kgDisp} ${unit} · ${p.barDisp} bar + ${perStr}/side${lastStr}</span></div>`;
 }
 /* ---- estimated 1RM (Epley) + PR detection ---- */
 function e1RM(kg,reps){ kg=Number(kg)||0; reps=Number(reps)||0; if(reps<=0) return 0; if(reps===1) return kg; return kg*(1+reps/30); }
@@ -1835,6 +1844,7 @@ function trendHTML(exName){
 }
 let searchQuery='';
 const GRIP_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"/></svg>';
+const BARBELL_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M2 9v6M5.5 7v10M18.5 7v10M22 9v6M5.5 12h13"/></svg>';
 function controlsHTML(ex){
   const v=getVals(ex); const nm=attr(ex.n);
   if(exMetric(ex)==='weight'){
@@ -1872,6 +1882,7 @@ function exCardHTML(ex,{primary=false,drag=false,groupTag=''}={}){
     <span class="ex-wipe" aria-hidden="true"></span>
     <div class="ex-head" onclick="toggleDetail('${sid}','${attr(ex.n)}')">
       ${drag?`<span class="ex-grip" title="Drag to reorder" onclick="event.stopPropagation()">${GRIP_SVG}</span>`:''}
+      <div class="${primary?'ex-icon-volt':'ex-icon-dim'}">${BARBELL_SVG}</div>
       <div style="flex:1;min-width:0">
         <div class="ex-name">${esc(ex.n)}${groupTag?`<span class="search-grouptag">${esc(groupTag)}</span>`:''}</div>
         <div class="ex-target">${esc(ex.t||'')}</div>
@@ -1884,7 +1895,7 @@ function exCardHTML(ex,{primary=false,drag=false,groupTag=''}={}){
       ${controlsHTML(ex)}
       <button class="logbtn" id="log_${sid}" onclick="logTap('${attr(ex.n)}',event)" aria-label="Log set"><span class="lb-fill" aria-hidden="true"></span><span class="lb-ic lb-log">Log</span><span class="lb-ic lb-chk" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span></button>
     </div>
-    ${isWeight(ex)?plateHTML(v.kg):''}
+    ${isWeight(ex)?plateHTML(v.kg,v.reps):''}
     <div class="detail" id="detail_${sid}"></div>
   </div>`;
 }
@@ -1977,15 +1988,17 @@ function bump(name,field,d){
   const card=document.getElementById('detail_'+sid)?.parentElement; if(!card) return;
   const inputs=card.querySelectorAll('.stepper input');
   if(field==='kg'){ const nd=Math.max(0, round1(dispW(v.kg)+d)); v.kg=toKgDisp(nd); if(inputs[0]) inputs[0].value=dispW(v.kg);
-    const pb=card.querySelector('.platebar'); if(pb){ const tmp=document.createElement('div'); tmp.innerHTML=plateHTML(v.kg); pb.replaceWith(tmp.firstElementChild); } }
-  else if(field==='reps'){ v.reps=Math.max(0, Math.round(v.reps+d)); if(inputs[1]) inputs[1].value=v.reps; }
+    const pb=card.querySelector('.platebar'); if(pb){ const tmp=document.createElement('div'); tmp.innerHTML=plateHTML(v.kg,v.reps); pb.replaceWith(tmp.firstElementChild); } }
+  else if(field==='reps'){ v.reps=Math.max(0, Math.round(v.reps+d)); if(inputs[1]) inputs[1].value=v.reps;
+    const pb=card.querySelector('.platebar'); if(pb){ const tmp=document.createElement('div'); tmp.innerHTML=plateHTML(v.kg,v.reps); pb.replaceWith(tmp.firstElementChild); } }
   else if(field==='v1'){ v.v1=Math.max(0, round1((v.v1||0)+d)); if(inputs[0]) inputs[0].value=round1(v.v1); }
   else if(field==='v2'){ v.v2=Math.max(0, round1((v.v2||0)+d)); if(inputs[1]) inputs[1].value=round1(v.v2); }
 }
 function setVal(name,field,val){ const ex=findEx(name); if(!ex) return; const v=getVals(ex); const x=parseFloat(val); if(isNaN(x)||x<0) return;
   if(field==='kg'){ v.kg=toKgDisp(x);
-      const card=document.getElementById('detail_'+slug(name))?.parentElement; const pb=card&&card.querySelector('.platebar'); if(pb){ const tmp=document.createElement('div'); tmp.innerHTML=plateHTML(v.kg); pb.replaceWith(tmp.firstElementChild); } }
-  else if(field==='reps'){ v.reps=x; }
+      const card=document.getElementById('detail_'+slug(name))?.parentElement; const pb=card&&card.querySelector('.platebar'); if(pb){ const tmp=document.createElement('div'); tmp.innerHTML=plateHTML(v.kg,v.reps); pb.replaceWith(tmp.firstElementChild); } }
+  else if(field==='reps'){ v.reps=x;
+      const card=document.getElementById('detail_'+slug(name))?.parentElement; const pb=card&&card.querySelector('.platebar'); if(pb){ const tmp=document.createElement('div'); tmp.innerHTML=plateHTML(v.kg,v.reps); pb.replaceWith(tmp.firstElementChild); } }
   else if(field==='v1'){ v.v1=x; }
   else if(field==='v2'){ v.v2=x; }
 }
