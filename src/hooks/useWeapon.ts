@@ -25,7 +25,9 @@ const DEFAULT_STATE: WeaponState = {
   restDefault: 120,
   setsPerEntry: 1,
   bar: 0,
-  fab: { side: 'right', y: 0.5 },
+  // FAB default sits roughly where legacy bottom-anchored it (≈ 86px from
+  // viewport bottom on a typical phone screen).
+  fab: { side: 'right', y: 0.74 },
 };
 
 export function useWeapon() {

@@ -17,7 +17,7 @@ const DEFAULT_STATE: WeaponState = {
   restDefault: 120,
   setsPerEntry: 1,
   bar: 0,
-  fab: { side: 'right', y: 0.5 },
+  fab: { side: 'right', y: 0.74 },
 };
 
 function rowToLog(

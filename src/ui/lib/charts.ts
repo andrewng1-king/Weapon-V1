@@ -14,6 +14,15 @@ function cFaint() { return css('--faint', '#6a6a67'); }
 function cTrack() { return css('--track', 'rgba(255,255,255,.08)'); }
 function cMuted() { return css('--muted', '#9b9a96'); }
 
+/** Centered "No data yet" placeholder — ported from legacy `emptyMsg`. */
+function emptyMsg(ctx: CanvasRenderingContext2D, W: number, H: number) {
+  ctx.fillStyle = cFaint();
+  ctx.font = '13px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('No data yet', W / 2, H / 2);
+}
+
 export function drawGauge(ctx: CanvasRenderingContext2D, W: number, H: number, pct: number) {
   const cx = W / 2, cy = H - 14, R = Math.max(0, Math.min(W / 2 - 12, H - 26));
   const segs = 30;
@@ -72,7 +81,7 @@ export function drawWeek(
 
 export function drawSplit(ctx: CanvasRenderingContext2D, W: number, H: number, counts: Record<string, number>) {
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) return;
+  if (!entries.length) { emptyMsg(ctx, W, H); return; }
   const total = entries.reduce((s, [, c]) => s + c, 0) || 1;
   const max = entries[0][1] || 1;
   const barH = 18;
@@ -109,7 +118,7 @@ export function drawSplit(ctx: CanvasRenderingContext2D, W: number, H: number, c
 }
 
 export function lineChart(ctx: CanvasRenderingContext2D, W: number, H: number, data: { d: string; v: number }[]) {
-  if (!data.length) return;
+  if (!data.length) { emptyMsg(ctx, W, H); return; }
 
   const pad = { t: 16, b: 28, l: 36, r: 14 };
   const cW = W - pad.l - pad.r;
@@ -193,45 +202,78 @@ export function lineChart(ctx: CanvasRenderingContext2D, W: number, H: number, d
   ctx.fillText(data[data.length - 1].d.slice(5), last.x, H - pad.b + 14);
 }
 
-export function drawRadar(ctx: CanvasRenderingContext2D, W: number, H: number, labels: string[], counts: Record<string, number>) {
-  const cx = W / 2, cy = H / 2;
-  const R = Math.min(cx, cy) - 30;
+/**
+ * Radar chart — ported from legacy `drawRadar`.
+ *
+ * `scale` (0..1) is used by `animRadar` to grow the polygon from origin out
+ * to its real value over time. Defaults to 1 for static rendering.
+ */
+export function drawRadar(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  labels: string[],
+  counts: Record<string, number>,
+  scale = 1,
+) {
+  const cx = W / 2, cy = H / 2 + 4;
+  const R = Math.min(W / 2, H / 2) - 36;
   const n = labels.length;
-  const max = Math.max(...Object.values(counts), 1);
-  const angleStep = (Math.PI * 2) / n;
+  if (n === 0) { emptyMsg(ctx, W, H); return; }
+  const max = Math.max(1, ...labels.map((g) => counts[g] || 0));
+  const ang = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
 
+  // Concentric rings (4 levels).
+  ctx.strokeStyle = cGrid();
+  ctx.lineWidth = 1;
   for (let ring = 1; ring <= 4; ring++) {
-    const r = R * ring / 4;
+    const rr = (R * ring) / 4;
     ctx.beginPath();
     for (let i = 0; i <= n; i++) {
-      const a = -Math.PI / 2 + i * angleStep;
-      const x = cx + r * Math.cos(a);
-      const y = cy + r * Math.sin(a);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      const a = ang(i % n);
+      const x = cx + Math.cos(a) * rr;
+      const y = cy + Math.sin(a) * rr;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     }
-    ctx.strokeStyle = cTrack();
-    ctx.lineWidth = 1;
+    ctx.closePath();
     ctx.stroke();
   }
 
-  ctx.beginPath();
-  labels.forEach((_, i) => {
-    const a = -Math.PI / 2 + i * angleStep;
+  // Spokes + axis labels.
+  ctx.fillStyle = cFaint();
+  ctx.font = '10px Inter, sans-serif';
+  ctx.textBaseline = 'alphabetic';
+  labels.forEach((g, i) => {
+    const a = ang(i);
+    const x = cx + Math.cos(a) * R;
+    const y = cy + Math.sin(a) * R;
+    ctx.strokeStyle = cGrid();
+    ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + R * Math.cos(a), cy + R * Math.sin(a));
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    const lx = cx + Math.cos(a) * (R + 15);
+    const ly = cy + Math.sin(a) * (R + 13);
+    ctx.textAlign = Math.abs(Math.cos(a)) < 0.35 ? 'center' : (Math.cos(a) > 0 ? 'left' : 'right');
+    ctx.fillText(g, lx, ly + 3);
   });
-  ctx.strokeStyle = cTrack();
-  ctx.stroke();
 
+  // Empty-state when no real data — keeps the spokes/labels but skips the polygon.
+  if (!labels.some((g) => (counts[g] || 0) > 0)) {
+    emptyMsg(ctx, W, H);
+    return;
+  }
+
+  // Filled polygon (scaled by `scale` for animation).
   const verts: { x: number; y: number }[] = [];
   ctx.beginPath();
   labels.forEach((g, i) => {
-    const val = (counts[g] || 0) / max;
-    const a = -Math.PI / 2 + i * angleStep;
-    const x = cx + R * val * Math.cos(a);
-    const y = cy + R * val * Math.sin(a);
+    const a = ang(i);
+    const rr = R * ((counts[g] || 0) / max) * scale;
+    const x = cx + Math.cos(a) * rr;
+    const y = cy + Math.sin(a) * rr;
     verts.push({ x, y });
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
   });
   ctx.closePath();
   ctx.fillStyle = `rgba(${accentRGB()},.18)`;
@@ -240,21 +282,11 @@ export function drawRadar(ctx: CanvasRenderingContext2D, W: number, H: number, l
   ctx.lineWidth = 1.8;
   ctx.stroke();
 
+  // Vertex dots.
+  ctx.fillStyle = accent();
   verts.forEach((v) => {
     ctx.beginPath();
-    ctx.arc(v.x, v.y, 3, 0, Math.PI * 2);
-    ctx.fillStyle = accent();
+    ctx.arc(v.x, v.y, 2.6, 0, Math.PI * 2);
     ctx.fill();
-  });
-
-  labels.forEach((g, i) => {
-    const a = -Math.PI / 2 + i * angleStep;
-    const x = cx + (R + 18) * Math.cos(a);
-    const y = cy + (R + 18) * Math.sin(a);
-    ctx.fillStyle = cMuted();
-    ctx.font = '600 10px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(g, x, y);
   });
 }

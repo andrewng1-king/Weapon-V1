@@ -29,6 +29,7 @@ export function useThemeSync(state: WeaponState | null) {
     const body = document.body;
     body.setAttribute('data-sport', state.sport);
     body.setAttribute('data-theme', state.theme);
+    body.setAttribute('data-mode', state.sport === 'gym' ? 'strength' : 'endurance');
     body.classList.toggle('dense', state.layout === 'dense');
 
     const accent = ACCENT_SET[state.dev.color] ?? ACCENT_SET[0];

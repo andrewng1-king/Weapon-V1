@@ -3,6 +3,12 @@ import type { LogEntry } from '@/domain/types';
 
 export type TabId = 'workout' | 'goals' | 'home' | 'report' | 'avatar';
 export type Modal = 'addExercise' | 'settings' | 'ranks' | 'calendar' | 'planner' | 'recExercise' | 'recSummary' | null;
+export type CompeteTab = 'score' | 'throwdown' | 'board' | 'challenges' | 'crews' | 'feed';
+
+interface CompeteState {
+  open: boolean;
+  tab: CompeteTab;
+}
 
 export interface ExerciseVals {
   kg?: number;
@@ -40,7 +46,7 @@ interface UIState {
   searchQuery: string;
   menuOpen: boolean;
   modal: Modal;
-  rankOpen: boolean;
+  compete: CompeteState;
   recording: RecordingState;
   vals: Record<string, ExerciseVals>;
   pending: Record<string, PendingSet>;
@@ -53,7 +59,9 @@ interface UIState {
   setSearchQuery: (q: string) => void;
   setMenuOpen: (open: boolean) => void;
   setModal: (m: Modal) => void;
-  setRankOpen: (open: boolean) => void;
+  openCompete: (tab?: CompeteTab) => void;
+  closeCompete: () => void;
+  setCompeteTab: (tab: CompeteTab) => void;
   setVal: (ex: string, kg: number, reps: number) => void;
   startRecording: () => void;
   stopRecording: () => void;
@@ -77,7 +85,7 @@ export const useUIStore = create<UIState>((set) => ({
   searchQuery: '',
   menuOpen: false,
   modal: null,
-  rankOpen: false,
+  compete: { open: false, tab: 'score' },
   recording: { active: false, startTime: 0, elapsed: 0, logs: [], minimized: false },
   vals: {},
   pending: {},
@@ -96,7 +104,9 @@ export const useUIStore = create<UIState>((set) => ({
   setSearchQuery: (q) => set({ searchQuery: q }),
   setMenuOpen: (open) => set({ menuOpen: open }),
   setModal: (m) => set({ modal: m }),
-  setRankOpen: (open) => set({ rankOpen: open }),
+  openCompete: (tab) => set((s) => ({ compete: { open: true, tab: tab ?? s.compete.tab } })),
+  closeCompete: () => set((s) => ({ compete: { ...s.compete, open: false } })),
+  setCompeteTab: (tab) => set((s) => ({ compete: { ...s.compete, tab } })),
   setVal: (ex, kg, reps) => set((s) => ({ vals: { ...s.vals, [ex]: { kg, reps } } })),
   startRecording: () => set({ recording: { active: true, startTime: Date.now(), elapsed: 0, logs: [], minimized: false } }),
   stopRecording: () => set((s) => ({ recording: { ...s.recording, active: false } })),

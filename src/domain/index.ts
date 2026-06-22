@@ -3,3 +3,4 @@ export * from './catalogue';
 export * from './ranks';
 export * from './metrics';
 export * from './format';
+export * from './weaponScore';

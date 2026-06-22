@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useWeapon, useUIStore } from '@/hooks';
-import { MAXLVL, STR_RANKS, allSportLogs, levelInfo } from '@/domain/ranks';
+import { STR_RANKS, allSportLogs, levelInfo, xpToReach } from '@/domain/ranks';
 import type { PresetExercise } from '@/domain/types';
 import { categoriesFor, exercisesFor, groupOfSport } from '@/domain/sports';
 import { calForVals, volume } from '@/domain/metrics';
@@ -14,6 +14,19 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 function haptic(pattern: number | number[]) {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(pattern);
+}
+
+/**
+ * Accept either a raw Spotify track ID (`3n3Ppam7vgaVa1iaRUc9Lp`) or a full
+ * track URL — strip everything but the trailing ID. Returns `null` for empty
+ * input.
+ */
+function parseSpotifyId(input: string): string | null {
+  const v = input.trim();
+  if (!v) return null;
+  const m = v.match(/track[/:]([A-Za-z0-9]+)/);
+  if (m) return m[1];
+  return v.split(/[?#]/)[0];
 }
 
 /** Mini exercise logger surfaced from the live-recording overlay (legacy recExModal). */
@@ -167,6 +180,29 @@ function RecSummaryModal() {
   const mins = Math.floor(recording.elapsed / 60);
   const kcal = Math.round(recording.elapsed / 60 * 5);
 
+  async function shareSession() {
+    const lines = [
+      `Session · ${fmtClock(recording.elapsed)}`,
+      `${recording.logs.length} sets logged · ~${kcal} kcal`,
+    ];
+    if (recording.logs.length) lines.push(recording.logs.join(' · '));
+    const text = lines.join('\n');
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: 'Session', text });
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard');
+        return;
+      }
+      showToast('Share not supported');
+    } catch {
+      // user-cancelled or platform error — silent
+    }
+  }
+
   return (
     <div className="modal-bg open" onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
       <div className="modal">
@@ -182,14 +218,25 @@ function RecSummaryModal() {
             {recording.logs.join(' · ')}
           </div>
         )}
-        <div className="mrow"><button type="button" className="m-save" onClick={() => setModal(null)}>Done</button></div>
+        <div className="mrow">
+          <button type="button" className="m-cancel" onClick={shareSession}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: -3, marginRight: 6 }}>
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+            </svg>
+            Share
+          </button>
+          <button type="button" className="m-save" onClick={() => setModal(null)}>Done</button>
+        </div>
       </div>
     </div>
   );
 }
 
 export function Modals() {
-  const { state, addCustomExercise, saveProfile, setBw, uploadMedia } = useWeapon();
+  const { state, addCustomExercise, saveProfile, setBw, uploadMedia, setDevMode } = useWeapon();
   const { modal, setModal } = useUIStore();
   const category = useUIStore((s) => s.category);
   const photoRef = useRef<HTMLInputElement>(null);
@@ -202,6 +249,7 @@ export function Modals() {
   const [pJob, setPJob] = useState('');
   const [pBio, setPBio] = useState('');
   const [pBw, setPBw] = useState('');
+  const [pHeight, setPHeight] = useState('');
   const [pSpotify, setPSpotify] = useState('');
 
   if (!state) return null;
@@ -224,7 +272,15 @@ export function Modals() {
   }
 
   function handleSaveProfile() {
-    saveProfile({ name: pName || undefined, job: pJob || undefined, bio: pBio || undefined, spotify: pSpotify || undefined });
+    const heightNum = pHeight.trim() ? +pHeight : undefined;
+    const spotifyId = parseSpotifyId(pSpotify);
+    saveProfile({
+      name: pName || undefined,
+      job: pJob || undefined,
+      bio: pBio || undefined,
+      height: heightNum && !Number.isNaN(heightNum) ? heightNum : undefined,
+      spotify: spotifyId || undefined,
+    });
     if (pBw) setBw(+pBw);
     setModal(null);
   }
@@ -235,6 +291,7 @@ export function Modals() {
       setPJob(state?.profile.job ?? '');
       setPBio(state?.profile.bio ?? '');
       setPBw(String(state?.bw ?? 75));
+      setPHeight(state?.profile.height != null ? String(state.profile.height) : '');
       setPSpotify(state?.profile.spotify ?? '');
     }
   }, [modal]);
@@ -272,12 +329,24 @@ export function Modals() {
               <input value={pName} onChange={(e) => setPName(e.target.value)} />
               <label>Title / Job</label>
               <input value={pJob} onChange={(e) => setPJob(e.target.value)} />
-              <label>Bodyweight (kg)</label>
-              <input type="number" value={pBw} onChange={(e) => setPBw(e.target.value)} />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <label>Bodyweight (kg)</label>
+                  <input type="number" inputMode="decimal" value={pBw} onChange={(e) => setPBw(e.target.value)} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label>Height (cm)</label>
+                  <input type="number" inputMode="numeric" value={pHeight} onChange={(e) => setPHeight(e.target.value)} placeholder="e.g. 175" />
+                </div>
+              </div>
               <label>Bio</label>
               <input value={pBio} onChange={(e) => setPBio(e.target.value)} />
-              <label>Spotify Track ID</label>
-              <input value={pSpotify} onChange={(e) => setPSpotify(e.target.value)} placeholder="e.g. 3n3Ppam7vgaVa1iaRUc9Lp" />
+              <label>Spotify track URL or ID</label>
+              <input
+                value={pSpotify}
+                onChange={(e) => setPSpotify(e.target.value)}
+                placeholder="https://open.spotify.com/track/… or 3n3Ppam7vgaVa1iaRUc9Lp"
+              />
             </div>
             <div className="mrow">
               <button className="m-cancel" onClick={() => setModal(null)}>Cancel</button>
@@ -288,28 +357,46 @@ export function Modals() {
       )}
 
       {/* Ranks Modal */}
-      {modal === 'ranks' && (
-        <div className="modal-bg open" onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
-          <div className="modal">
-            <h3>All ranks</h3>
-            <div className="ranks-list">
-              {STR_RANKS.map((name, i) => {
-                const lvl = i + 1;
-                const realLvl = levelInfo(allSportLogs(state)).lvl;
-                const isCur = lvl === (state.dev.on ? state.dev.lvl : realLvl);
-                return (
-                  <div key={name} className={`rank-line${isCur ? ' cur' : ''}`}>
-                    <span className="rl-lv">{lvl}</span>
-                    <span className="rl-name">{name}</span>
-                    {isCur && <span className="rl-tag">YOU</span>}
-                  </div>
-                );
-              })}
+      {modal === 'ranks' && (() => {
+        const realLvl = levelInfo(allSportLogs(state)).lvl;
+        const curLvl = state.dev.on ? state.dev.lvl : realLvl;
+
+        function onRankClick(lvl: number) {
+          // Click a rank → enter dev preview at that level (legacy: rank
+          // ladder rows are tappable as a quick dev shortcut).
+          setDevMode(true, lvl);
+          showToast(`Previewing Lv ${lvl} · ${STR_RANKS[lvl - 1]}`);
+        }
+
+        return (
+          <div className="modal-bg open" onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
+            <div className="modal">
+              <h3>All ranks</h3>
+              <div className="ranks-list">
+                {STR_RANKS.map((name, i) => {
+                  const lvl = i + 1;
+                  const isCur = lvl === curLvl;
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      className={`rank-line${isCur ? ' cur' : ''}`}
+                      onClick={() => onRankClick(lvl)}
+                    >
+                      <span className="rl-lv">{lvl}</span>
+                      <span className="rl-name">{name}</span>
+                      {isCur
+                        ? <span className="rl-tag">YOU</span>
+                        : <span className="rl-tag" style={{ color: 'var(--faint)' }}>{fmtK(xpToReach(lvl))} XP</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mrow"><button className="m-cancel" onClick={() => setModal(null)}>Close</button></div>
             </div>
-            <div className="mrow"><button className="m-cancel" onClick={() => setModal(null)}>Close</button></div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Planner Placeholder */}
       {modal === 'planner' && (
