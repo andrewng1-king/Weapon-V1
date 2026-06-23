@@ -1,77 +1,48 @@
-import { GROUP_COLORS } from '@/domain/sports';
+import { GROUP_COLORS } from '@/domain/catalogue';
+import type { GymGroup } from '@/domain/types';
 
-function css(v: string, fallback: string): string {
-  if (typeof document === 'undefined') return fallback;
-  return getComputedStyle(document.body).getPropertyValue(v).trim() || fallback;
-}
-
-function accent() { return css('--accent', '#c2a878'); }
-function accentRGB() { return css('--accent-rgb', '194,168,120'); }
-function accentInk() { return css('--accent-ink', '#15120b'); }
-function cGrid() { return css('--grid', 'rgba(255,255,255,.10)'); }
-function cInk() { return css('--ink', '#e9e7e3'); }
-function cFaint() { return css('--faint', '#6a6a67'); }
-function cTrack() { return css('--track', 'rgba(255,255,255,.08)'); }
-function cMuted() { return css('--muted', '#9b9a96'); }
-
-/** Centered "No data yet" placeholder — ported from legacy `emptyMsg`. */
-function emptyMsg(ctx: CanvasRenderingContext2D, W: number, H: number) {
-  ctx.fillStyle = cFaint();
-  ctx.font = '13px Inter, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('No data yet', W / 2, H / 2);
-}
+const ACCENT = '#e8ff00';
+const TRACK = 'rgba(255,255,255,.08)';
+const INK = '#f5f5f3';
+const FAINT = '#5d5d5a';
+const MUTED = '#8a8a86';
 
 export function drawGauge(ctx: CanvasRenderingContext2D, W: number, H: number, pct: number) {
   const cx = W / 2, cy = H - 14, R = Math.max(0, Math.min(W / 2 - 12, H - 26));
   const segs = 30;
+  const gap = 0.025;
+  const totalArc = Math.PI;
+  const segArc = (totalArc - gap * (segs - 1)) / segs;
 
   for (let i = 0; i < segs; i++) {
-    const t = i / (segs - 1);
-    const ang = Math.PI + Math.PI * t;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(ang);
-    ctx.fillStyle = t <= pct ? accent() : cGrid();
+    const angle = Math.PI + i * (segArc + gap);
+    const filled = i / segs < pct;
     ctx.beginPath();
-    ctx.roundRect(R - 20, -4.5, 16, 9, 3);
-    ctx.fill();
-    ctx.restore();
+    ctx.arc(cx, cy, R, angle, angle + segArc);
+    ctx.strokeStyle = filled ? ACCENT : TRACK;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.stroke();
   }
 }
 
-export function drawWeek(
-  ctx: CanvasRenderingContext2D,
-  W: number,
-  H: number,
-  days: string[],
-  trained: boolean[],
-  today: string,
-  selectedIdx?: number,
-) {
-  const a = accent();
+export function drawWeek(ctx: CanvasRenderingContext2D, W: number, H: number, days: string[], trained: boolean[], today: string) {
   const r = 14;
   const gap = (W - days.length * r * 2) / (days.length + 1);
 
   days.forEach((d, i) => {
     const x = gap + r + i * (r * 2 + gap);
     const y = H / 2;
-    if (selectedIdx === i) {
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3, 0, Math.PI * 2);
-      ctx.strokeStyle = a;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = trained[i]
-      ? (d === today ? a : `rgba(${accentRGB()},.3)`)
-      : cTrack();
+    if (trained[i]) {
+      ctx.fillStyle = d === today ? ACCENT : `rgba(194,168,120,.3)`;
+    } else {
+      ctx.fillStyle = TRACK;
+    }
     ctx.fill();
 
-    ctx.fillStyle = trained[i] ? (d === today ? accentInk() : cInk()) : cFaint();
+    ctx.fillStyle = trained[i] ? INK : FAINT;
     ctx.font = '600 11px Inter, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -79,84 +50,49 @@ export function drawWeek(
   });
 }
 
-export function drawSplit(ctx: CanvasRenderingContext2D, W: number, H: number, counts: Record<string, number>) {
+export function drawSplit(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  counts: Record<string, number>,
+  colorFor?: (g: string) => string
+) {
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) { emptyMsg(ctx, W, H); return; }
-  const total = entries.reduce((s, [, c]) => s + c, 0) || 1;
+  if (!entries.length) return;
   const max = entries[0][1] || 1;
   const barH = 18;
   const gap = 10;
   const labelW = 80;
-  const valW = 40;
 
   entries.forEach(([g, c], i) => {
     const y = 10 + i * (barH + gap);
-
-    ctx.fillStyle = cFaint();
+    ctx.fillStyle = FAINT;
     ctx.font = '600 11px Inter, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(g, 0, y + barH / 2);
 
-    const trackW = W - labelW - valW;
-    ctx.fillStyle = cGrid();
-    ctx.beginPath();
-    ctx.roundRect(labelW, y, trackW, barH, 4);
-    ctx.fill();
-
-    const barW = trackW * (c / max);
-    ctx.fillStyle = GROUP_COLORS[g] || '#888';
+    const barW = (W - labelW - 40) * (c / max);
+    ctx.fillStyle = colorFor ? colorFor(g) : GROUP_COLORS[g as GymGroup] || '#888';
     ctx.beginPath();
     ctx.roundRect(labelW, y, barW, barH, 4);
     ctx.fill();
 
-    ctx.fillStyle = cMuted();
+    ctx.fillStyle = MUTED;
     ctx.font = '700 11px Archivo, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(`${Math.round(c / total * 100)}%`, W, y + barH / 2);
+    ctx.textAlign = 'left';
+    ctx.fillText(String(c), labelW + barW + 8, y + barH / 2);
   });
 }
 
 export function lineChart(ctx: CanvasRenderingContext2D, W: number, H: number, data: { d: string; v: number }[]) {
-  if (!data.length) { emptyMsg(ctx, W, H); return; }
-
-  const pad = { t: 16, b: 28, l: 36, r: 14 };
+  if (data.length < 2) return;
+  const pad = { t: 10, b: 24, l: 10, r: 10 };
   const cW = W - pad.l - pad.r;
   const cH = H - pad.t - pad.b;
-
-  if (data.length === 1) {
-    const x = pad.l + cW / 2, y = pad.t + cH / 2;
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = accent();
-    ctx.fill();
-    ctx.fillStyle = cInk();
-    ctx.font = '700 12px Archivo, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${data[0].v} kg`, x, y - 14);
-    return;
-  }
-
   const max = Math.max(...data.map((p) => p.v)) || 1;
   const min = Math.min(...data.map((p) => p.v));
   const range = max - min || 1;
-
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.t + (cH * i) / 4;
-    ctx.beginPath();
-    ctx.moveTo(pad.l, y);
-    ctx.lineTo(W - pad.r, y);
-    ctx.strokeStyle = cGrid();
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    const val = Math.round(max - (range * i) / 4);
-    ctx.fillStyle = cFaint();
-    ctx.font = '600 9px Archivo, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(val), pad.l - 6, y);
-  }
 
   const points = data.map((p, i) => ({
     x: pad.l + (i / (data.length - 1)) * cW,
@@ -164,13 +100,13 @@ export function lineChart(ctx: CanvasRenderingContext2D, W: number, H: number, d
   }));
 
   const grad = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
-  grad.addColorStop(0, `rgba(${accentRGB()},.28)`);
-  grad.addColorStop(1, `rgba(${accentRGB()},0)`);
+  grad.addColorStop(0, 'rgba(194,168,120,.25)');
+  grad.addColorStop(1, 'rgba(194,168,120,0)');
 
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
   points.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
-  ctx.strokeStyle = accent();
+  ctx.strokeStyle = ACCENT;
   ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
   ctx.stroke();
@@ -181,112 +117,66 @@ export function lineChart(ctx: CanvasRenderingContext2D, W: number, H: number, d
   ctx.fillStyle = grad;
   ctx.fill();
 
-  points.forEach((p) => {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-    ctx.fillStyle = accent();
-    ctx.fill();
-  });
-
   const last = points[points.length - 1];
-  ctx.fillStyle = cInk();
-  ctx.font = '700 11px Archivo, sans-serif';
-  ctx.textAlign = 'right';
-  ctx.fillText(`${data[data.length - 1].v} kg`, last.x, last.y - 10);
-
-  ctx.fillStyle = cFaint();
-  ctx.font = '600 9px Inter, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(data[0].d.slice(5), points[0].x, H - pad.b + 14);
-  ctx.textAlign = 'right';
-  ctx.fillText(data[data.length - 1].d.slice(5), last.x, H - pad.b + 14);
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+  ctx.fillStyle = ACCENT;
+  ctx.fill();
 }
 
-/**
- * Radar chart — ported from legacy `drawRadar`.
- *
- * `scale` (0..1) is used by `animRadar` to grow the polygon from origin out
- * to its real value over time. Defaults to 1 for static rendering.
- */
-export function drawRadar(
-  ctx: CanvasRenderingContext2D,
-  W: number,
-  H: number,
-  labels: string[],
-  counts: Record<string, number>,
-  scale = 1,
-) {
-  const cx = W / 2, cy = H / 2 + 4;
-  const R = Math.min(W / 2, H / 2) - 36;
+export function drawRadar(ctx: CanvasRenderingContext2D, W: number, H: number, labels: string[], counts: Record<string, number>) {
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(cx, cy) - 30;
   const n = labels.length;
-  if (n === 0) { emptyMsg(ctx, W, H); return; }
-  const max = Math.max(1, ...labels.map((g) => counts[g] || 0));
-  const ang = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+  const max = Math.max(...Object.values(counts), 1);
+  const angleStep = (Math.PI * 2) / n;
 
-  // Concentric rings (4 levels).
-  ctx.strokeStyle = cGrid();
-  ctx.lineWidth = 1;
   for (let ring = 1; ring <= 4; ring++) {
-    const rr = (R * ring) / 4;
+    const r = R * ring / 4;
     ctx.beginPath();
     for (let i = 0; i <= n; i++) {
-      const a = ang(i % n);
-      const x = cx + Math.cos(a) * rr;
-      const y = cy + Math.sin(a) * rr;
-      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      const a = -Math.PI / 2 + i * angleStep;
+      const x = cx + r * Math.cos(a);
+      const y = cy + r * Math.sin(a);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
-    ctx.closePath();
+    ctx.strokeStyle = TRACK;
+    ctx.lineWidth = 1;
     ctx.stroke();
   }
 
-  // Spokes + axis labels.
-  ctx.fillStyle = cFaint();
-  ctx.font = '10px Inter, sans-serif';
-  ctx.textBaseline = 'alphabetic';
-  labels.forEach((g, i) => {
-    const a = ang(i);
-    const x = cx + Math.cos(a) * R;
-    const y = cy + Math.sin(a) * R;
-    ctx.strokeStyle = cGrid();
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    const lx = cx + Math.cos(a) * (R + 15);
-    const ly = cy + Math.sin(a) * (R + 13);
-    ctx.textAlign = Math.abs(Math.cos(a)) < 0.35 ? 'center' : (Math.cos(a) > 0 ? 'left' : 'right');
-    ctx.fillText(g, lx, ly + 3);
-  });
-
-  // Empty-state when no real data — keeps the spokes/labels but skips the polygon.
-  if (!labels.some((g) => (counts[g] || 0) > 0)) {
-    emptyMsg(ctx, W, H);
-    return;
-  }
-
-  // Filled polygon (scaled by `scale` for animation).
-  const verts: { x: number; y: number }[] = [];
   ctx.beginPath();
-  labels.forEach((g, i) => {
-    const a = ang(i);
-    const rr = R * ((counts[g] || 0) / max) * scale;
-    const x = cx + Math.cos(a) * rr;
-    const y = cy + Math.sin(a) * rr;
-    verts.push({ x, y });
-    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  labels.forEach((_, i) => {
+    const a = -Math.PI / 2 + i * angleStep;
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + R * Math.cos(a), cy + R * Math.sin(a));
   });
-  ctx.closePath();
-  ctx.fillStyle = `rgba(${accentRGB()},.18)`;
-  ctx.fill();
-  ctx.strokeStyle = accent();
-  ctx.lineWidth = 1.8;
+  ctx.strokeStyle = TRACK;
   ctx.stroke();
 
-  // Vertex dots.
-  ctx.fillStyle = accent();
-  verts.forEach((v) => {
-    ctx.beginPath();
-    ctx.arc(v.x, v.y, 2.6, 0, Math.PI * 2);
-    ctx.fill();
+  ctx.beginPath();
+  labels.forEach((g, i) => {
+    const val = (counts[g] || 0) / max;
+    const a = -Math.PI / 2 + i * angleStep;
+    const x = cx + R * val * Math.cos(a);
+    const y = cy + R * val * Math.sin(a);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(194,168,120,.18)';
+  ctx.fill();
+  ctx.strokeStyle = ACCENT;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  labels.forEach((g, i) => {
+    const a = -Math.PI / 2 + i * angleStep;
+    const x = cx + (R + 18) * Math.cos(a);
+    const y = cy + (R + 18) * Math.sin(a);
+    ctx.fillStyle = MUTED;
+    ctx.font = '600 10px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(g, x, y);
   });
 }

@@ -10,6 +10,5 @@ export interface WorkoutRepository {
   saveSettings(userId: string, state: WeaponState): Promise<void>;
   addLog(userId: string, log: LogEntry, sport: SportId): Promise<void>;
   deleteLog(userId: string, logId: string): Promise<void>;
-  addCustomExercise(userId: string, sport: SportId, ex: CustomExercise): Promise<void>;
-  uploadMedia?(userId: string, kind: 'photo' | 'cover', file: File): Promise<string>;
+  addCustomExercise(userId: string, ex: CustomExercise): Promise<void>;
 }

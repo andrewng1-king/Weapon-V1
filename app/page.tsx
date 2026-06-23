@@ -1,5 +1,12 @@
-import { AppShell } from '@/ui/components/AppShell';
+'use client';
+
+import { Providers } from './providers';
+import { App } from '@/ui/components/App';
 
 export default function Page() {
-  return <AppShell />;
+  return (
+    <Providers>
+      <App />
+    </Providers>
+  );
 }

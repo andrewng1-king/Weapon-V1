@@ -1,87 +1,73 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { useWeapon, useUIStore } from '@/hooks';
-import { weekDates, calForVals } from '@/domain/metrics';
-import { todayStr, fmtK } from '@/domain/format';
+import { weekDates, calForLog } from '@/domain/metrics';
+import { sportDef } from '@/domain/catalogue';
+import { todayStr } from '@/domain/format';
 import { Chart } from './Chart';
 import { drawGauge } from '@/ui/lib/charts';
 
-const DOWS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const DEFAULT_CAL_TARGET = 3000;
-
-type GoalIcon = 'flame' | 'cal' | 'weight' | 'foot';
-
-function GoalStatIcon({ ico }: { ico: GoalIcon }) {
-  const paths: Record<GoalIcon, ReactNode> = {
-    flame: <path d="M12 3c1.2 3-2 4.2-2 7a4 4 0 0 0 8 0c0-1.3-.6-2.4-1.3-3.3.3 3.8-2.7 3.6-2.7 1.1C12 6.2 12 4.4 12 3z" />,
-    cal: <><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 9.5h17M8 3v4M16 3v4" /></>,
-    weight: <><circle cx="12" cy="4.4" r="2" /><path d="M12 6.4v8M8.2 9.4h7.6M9.4 19l2.6-4.6L14.6 19" /></>,
-    foot: <><path d="M9 11c-1.6 0-2.6 1.4-2.6 3.4S7.6 18 9.4 18s2.8-1.2 2.8-3.8C12.2 9.6 11 6 9 6 8 6 9 9 9 11z" /><circle cx="15.5" cy="7" r="1.3" /><circle cx="17.5" cy="9.5" r="1.1" /></>,
-  };
-  return (
-    <div className="gs-ico">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        {paths[ico]}
-      </svg>
-    </div>
-  );
-}
-
-function GoalStat({ ico, v, l }: { ico: GoalIcon; v: ReactNode; l: string }) {
-  return (
-    <div className="goal-stat">
-      <GoalStatIcon ico={ico} />
-      <div className="gs-v">{v}</div>
-      <div className="gs-l">{l}</div>
-    </div>
-  );
-}
-
 export function GoalsTab() {
-  const { state, setCalTarget } = useWeapon();
+  const { state, setGoal } = useWeapon();
+  const setModal = useUIStore((s) => s.setModal);
+  if (!state) return null;
+
   const sport = state.sport;
   const bucket = state.sports[sport];
-  const setModal = useUIStore((s) => s.setModal);
-
-  const wk = weekDates();
+  const def = sportDef(sport);
+  const goal = def.goal;
+  const wd = weekDates();
   const today = todayStr();
+  const target = state.goals.targets[sport] ?? goal.def;
 
-  const weekCal = bucket.logs
-    .filter((l) => wk.includes(l.date))
-    .reduce((a, l) => a + calForVals(l.kg ?? 0, l.reps ?? 0, l.sets || 3, state.bw), 0);
-  const target = state.goals.calTarget ?? DEFAULT_CAL_TARGET;
-  const pct = Math.max(0, Math.min(1, target ? weekCal / target : 0));
-  const daysLifted = new Set(bucket.logs.map((l) => l.date)).size;
+  const daysLifted = new Set(wd.filter((d) => bucket.logs.some((l) => l.date === d))).size;
 
-  function openCalendar() {
-    setModal('calendar');
-  }
+  // weekly value depends on the sport's goal kind
+  const weekValue = (() => {
+    if (goal.kind === 'sessions') return daysLifted;
+    if (goal.kind === 'dist') {
+      return wd.reduce(
+        (sum, d) =>
+          sum +
+          bucket.logs
+            .filter((l) => l.date === d && (l.m === 'dist' || !l.m))
+            .reduce((s, l) => {
+              const v = l.v1 ?? 0;
+              return s + (l.u1 === 'm' ? v / 1000 : v);
+            }, 0),
+        0
+      );
+    }
+    // cal
+    return wd.reduce(
+      (sum, d) => sum + bucket.logs.filter((l) => l.date === d).reduce((s, l) => s + calForLog(l, state.bw), 0),
+      0
+    );
+  })();
 
-  function onTargetChange(raw: string) {
-    const x = parseInt(raw, 10);
-    if (!isNaN(x) && x > 0) setCalTarget(x);
-  }
+  const weekRounded = goal.kind === 'dist' ? Math.round(weekValue * 10) / 10 : Math.round(weekValue);
+  const pct = Math.min(1, target > 0 ? weekValue / target : 0);
 
   return (
     <main>
-      <div className="sectionTitle">Daily goals</div>
+      <div className="sectionTitle">Goals</div>
 
-      <div className="card" style={{ cursor: 'pointer' }} onClick={openCalendar}>
+      <div className="card" style={{ cursor: 'pointer' }} onClick={() => setModal('calendar')}>
         <h2>This week</h2>
-        <div className="hint">Days you trained · tap for calendar</div>
+        <div className="hint">Days you trained · tap to open history</div>
         <div className="goal-week">
-          {wk.map((d, i) => {
+          {wd.map((d, i) => {
+            const dow = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i];
             const trained = bucket.logs.some((l) => l.date === d);
             const isToday = d === today;
             return (
               <div
                 key={d}
                 className={`goal-day${trained ? ' trained' : ''}${isToday ? ' today' : ''}`}
-                onClick={(e) => { e.stopPropagation(); openCalendar(); }}
+                onClick={(e) => { e.stopPropagation(); setModal('calendar'); }}
               >
-                <div className="gd-dow">{DOWS[i]}</div>
-                <div className="gd-num">{+d.slice(8)}</div>
+                <div className="gd-dow">{dow}</div>
+                <div className="gd-num">{+d.slice(-2)}</div>
               </div>
             );
           })}
@@ -89,27 +75,41 @@ export function GoalsTab() {
       </div>
 
       <div className="card">
-        <h2>Goal progress</h2>
-        <div className="hint">Calories burned this week</div>
         <div className="gauge-wrap">
           <Chart height={170} draw={(ctx, w, h) => drawGauge(ctx, w, h, pct)} deps={[pct]} />
           <div className="gauge-center">
-            <div className="gauge-val">{fmtK(weekCal)}</div>
-            <div className="gauge-lbl">of {fmtK(target)} kcal</div>
+            <div className="gauge-val">{weekRounded}</div>
+            <div className="gauge-lbl">{goal.unit} this week</div>
           </div>
         </div>
         <div className="goal-target">
-          Weekly target
-          <input type="number" value={target} onChange={(e) => onTargetChange(e.target.value)} />
-          kcal
+          <span>{goal.label}</span>
+          <input type="number" value={target} onChange={(e) => setGoal(sport, +e.target.value || goal.def)} />
+          <span>{goal.unit}</span>
         </div>
       </div>
 
       <div className="goal-grid">
-        <GoalStat ico="flame" v={fmtK(weekCal)} l="kcal this week" />
-        <GoalStat ico="cal" v={daysLifted} l="days lifted" />
-        <GoalStat ico="weight" v={`${state.bw || 75} kg`} l="bodyweight" />
-        <GoalStat ico="foot" v="—" l="steps · soon" />
+        <div className="goal-stat">
+          <div className="gs-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg></div>
+          <div className="gs-v">{weekRounded}</div>
+          <div className="gs-l">{goal.unit} this week</div>
+        </div>
+        <div className="goal-stat">
+          <div className="gs-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M8 2v4M16 2v4" /></svg></div>
+          <div className="gs-v">{daysLifted}</div>
+          <div className="gs-l">days lifted</div>
+        </div>
+        <div className="goal-stat">
+          <div className="gs-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M12 8v4l2.5 2.5" /></svg></div>
+          <div className="gs-v">{state.bw}</div>
+          <div className="gs-l">bodyweight</div>
+        </div>
+        <div className="goal-stat">
+          <div className="gs-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19h16M4 15l4-6 4 4 4-8 4 6" /></svg></div>
+          <div className="gs-v">—</div>
+          <div className="gs-l">steps</div>
+        </div>
       </div>
     </main>
   );

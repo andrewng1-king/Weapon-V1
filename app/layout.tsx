@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ATHLETE — Strength Tracker',
+  title: 'EDGR — Strength Tracker',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: 'ATHLETE', statusBarStyle: 'black-translucent' },
+  appleWebApp: { capable: true, title: 'EDGR', statusBarStyle: 'black-translucent' },
 };
 
 export const viewport: Viewport = {
@@ -12,12 +12,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0a0a0b',
+  themeColor: '#0a0a0a',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body data-mode="strength" suppressHydrationWarning>
+      <body data-mode="strength">
         {children}
       </body>
     </html>

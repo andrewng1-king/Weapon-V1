@@ -1,5 +1,5 @@
 import type { LogEntry, AvatarStats, Achievement, SportId } from './types';
-import { groupOfSport, sportDef } from './sports';
+import { catsFor, groupOf } from './catalogue';
 
 export function calForVals(kg: number, reps: number, sets: number, bw: number): number {
   kg = +kg || 0;
@@ -9,6 +9,32 @@ export function calForVals(kg: number, reps: number, sets: number, bw: number): 
   const durMin = sets * (reps * 3 + 45) / 60;
   const met = 3.5 + 2.5 * Math.min(1, bw > 0 ? kg / bw : 0);
   return Math.round(met * 3.5 * bw / 200 * durMin);
+}
+
+/** Calories for a single log, branching on its metric (weight/dist/hold/reps). */
+export function calForLog(l: LogEntry, bw: number): number {
+  if (!l.m || l.m === 'weight') return calForVals(l.kg, l.reps, l.sets || 1, bw);
+  bw = bw || 75;
+  const v1 = l.v1 || 0;
+  const v2 = l.v2 || 0;
+  const sets = l.sets || 1;
+  switch (l.m) {
+    case 'dist': {
+      const km = l.u1 === 'm' ? v1 / 1000 : v1;
+      const elev = l.u2 && /↑/.test(l.u2) ? v2 : 0;
+      return Math.round(km * bw * 0.95 + elev * bw * 0.0085);
+    }
+    case 'hold':
+      return Math.round(v1 * sets * 0.15);
+    case 'reps':
+    default:
+      return Math.round(v1 * sets * 0.45);
+  }
+}
+
+/** Primary numeric value of a log for its metric (kg for weight, else v1). */
+export function primaryVal(l: LogEntry): number {
+  return !l.m || l.m === 'weight' ? l.kg || 0 : l.v1 || 0;
 }
 
 export function weekDates(): string[] {
@@ -24,31 +50,27 @@ export function weekDates(): string[] {
 }
 
 export function volume(log: LogEntry): number {
-  const metric = log.metric ?? 'weight';
-  const sets = log.sets || 1;
-  if (metric === 'weight') return (log.kg || 0) * (log.reps || 0) * sets;
-  return (log.v1 || 0) * sets;
+  return (log.kg || 0) * (log.reps || 0) * (log.sets || 1);
 }
 
-export function setsByGroup(logs: LogEntry[], sport: SportId, custom: import('./types').CustomExercise[]): Record<string, number> {
+export function setsByGroup(logs: LogEntry[], sport: SportId): Record<string, number> {
   const counts: Record<string, number> = {};
   logs.forEach((l) => {
-    const g = groupOfSport(sport, l.ex, custom) || 'Other';
+    const g = groupOf(sport, l.ex) || 'Other';
     counts[g] = (counts[g] || 0) + (l.sets || 1);
   });
   return counts;
 }
 
-export function avStats(logs: LogEntry[], sport: SportId, custom: import('./types').CustomExercise[], devLvl?: number): AvatarStats {
+export function avStats(logs: LogEntry[], sport: SportId, devLvl?: number): AvatarStats {
   let vol = 0, maxSet = 0;
   const groups: Record<string, boolean> = {};
   const days: Record<string, boolean> = {};
 
   logs.forEach((l) => {
-    vol += volume(l);
-    const metric = l.metric ?? 'weight';
-    if (metric === 'weight' && (l.kg || 0) > maxSet) maxSet = l.kg || 0;
-    const g = groupOfSport(sport, l.ex, custom);
+    vol += (l.kg || 0) * (l.reps || 0) * (l.sets || 1);
+    if ((l.kg || 0) > maxSet) maxSet = l.kg || 0;
+    const g = groupOf(sport, l.ex);
     if (g) groups[g] = true;
     const d = new Date(l.date);
     if (!isNaN(d.getTime())) days[d.toISOString().slice(0, 10)] = true;
@@ -82,85 +104,23 @@ export function avStats(logs: LogEntry[], sport: SportId, custom: import('./type
 
 export function achList(st: AvatarStats): Achievement[] {
   return [
-    { nm: 'First set', ic: '🏋', got: st.logs >= 1, p: Math.min(1, st.logs) },
-    { nm: '10 sessions', ic: '📅', got: st.sessions >= 10, p: Math.min(1, st.sessions / 10) },
-    { nm: '100k volume', ic: '💪', got: st.vol >= 100000, p: Math.min(1, st.vol / 100000) },
-    { nm: '100kg set', ic: '🏆', got: st.maxSet >= 100, p: Math.min(1, st.maxSet / 100) },
-    { nm: 'All-rounder', ic: '🎯', got: st.groupsHit >= 6, p: Math.min(1, st.groupsHit / 6) },
-    { nm: '7-day streak', ic: '🔥', got: st.streak >= 7, p: Math.min(1, st.streak / 7) },
-    { nm: 'Level 10', ic: '⭐', got: st.lvl >= 10, p: Math.min(1, st.lvl / 10) },
-    { nm: 'Triple plate', ic: '🥇', got: st.maxSet >= 140, p: Math.min(1, st.maxSet / 140) },
+    { nm: 'First set', ic: '<path d="M5 12l4 4L19 6"/>', got: st.logs >= 1, p: Math.min(1, st.logs / 1) },
+    { nm: '10 sessions', ic: '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/>', got: st.sessions >= 10, p: Math.min(1, st.sessions / 10) },
+    { nm: '100k volume', ic: '<path d="M4 19V5M4 19h16M8 19v-6M12 19v-9M16 19v-4"/>', got: st.vol >= 100000, p: Math.min(1, st.vol / 100000) },
+    { nm: '100kg set', ic: '<path d="M2 9v6M5.5 7v10M18.5 7v10M22 9v6M5.5 12h13"/>', got: st.maxSet >= 100, p: Math.min(1, st.maxSet / 100) },
+    { nm: 'All-rounder', ic: '<path d="M12 2l2.6 5.6 6.1.9-4.4 4.3 1 6.1L12 20l-5.5 2.9 1-6.1L3.1 8.5l6.1-.9z"/>', got: st.groupsHit >= 6, p: Math.min(1, st.groupsHit / 6) },
+    { nm: '7-day streak', ic: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', got: st.streak >= 7, p: Math.min(1, st.streak / 7) },
+    { nm: 'Level 10', ic: '<path d="M12 2.5l8 4.6v9.2L12 21l-8-4.7V7.1z"/>', got: st.lvl >= 10, p: Math.min(1, st.lvl / 10) },
+    { nm: 'Triple plate', ic: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/>', got: st.maxSet >= 140, p: Math.min(1, st.maxSet / 140) },
   ];
 }
 
-export function groupCounts(logs: LogEntry[], sport: SportId, custom: import('./types').CustomExercise[]): Record<string, number> {
-  return setsByGroup(logs, sport, custom);
-}
-
-export function weeklyGoalValue(
-  sport: SportId,
-  logs: LogEntry[],
-  bw: number,
-  target?: number
-): { value: number; target: number; pct: number } {
-  const def = sportDef(sport);
-  const t = target ?? def.goal.def;
-  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-  const weekLogs = logs.filter((l) => l.date >= weekAgo);
-  let value = 0;
-  switch (def.goal.kind) {
-    case 'cal':
-      value = weekLogs.reduce((s, l) => {
-        if ((l.metric ?? 'weight') === 'weight') {
-          return s + calForVals(l.kg ?? 0, l.reps ?? 0, l.sets ?? 1, bw);
-        }
-        return s + 50;
-      }, 0);
-      break;
-    case 'dist':
-      value = weekLogs.reduce((s, l) => s + (l.v1 ?? l.kg ?? 0), 0);
-      break;
-    case 'dist_m':
-      value = weekLogs.reduce((s, l) => s + (l.v1 ?? 0), 0);
-      break;
-    case 'elev':
-      value = weekLogs.reduce((s, l) => s + (l.v2 ?? 0), 0);
-      break;
-    case 'time':
-      value = weekLogs.reduce((s, l) => s + (l.v1 ?? 0), 0);
-      break;
-    case 'sessions':
-      value = new Set(weekLogs.map((l) => l.date)).size;
-      break;
-  }
-  return { value, target: t, pct: t > 0 ? Math.min(1, value / t) : 0 };
-}
-
-export function kgDisplay(kg: number, unit: 'kg' | 'lb'): number {
-  return unit === 'lb' ? Math.round(kg * 2.20462 * 10) / 10 : kg;
-}
-
-export function kgCanonical(display: number, unit: 'kg' | 'lb'): number {
-  return unit === 'lb' ? display / 2.20462 : display;
-}
-
-export function weightStep(unit: 'kg' | 'lb'): number {
-  return unit === 'lb' ? 5 : 2.5;
-}
-
-export function platesFor(totalKg: number, barKg: number, unit: 'kg' | 'lb'): number[] {
-  const plates = unit === 'lb'
-    ? [20.412, 15.876, 11.34, 4.536, 2.268].map((p) => p * 2)
-    : [25, 20, 15, 10, 5, 2.5, 1.25];
-  const bar = barKg > 0 ? barKg : 20;
-  let perSide = (totalKg - bar) / 2;
-  if (perSide <= 0) return [];
-  const out: number[] = [];
-  for (const p of plates) {
-    while (perSide >= p - 0.01) {
-      out.push(p);
-      perSide -= p;
-    }
-  }
-  return out;
+export function groupCounts(logs: LogEntry[], sport: SportId): Record<string, number> {
+  const counts: Record<string, number> = {};
+  catsFor(sport).forEach((g) => (counts[g] = 0));
+  logs.forEach((l) => {
+    const g = groupOf(sport, l.ex);
+    if (g && counts[g] != null) counts[g] += l.sets || 1;
+  });
+  return counts;
 }

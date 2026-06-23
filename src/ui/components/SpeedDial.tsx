@@ -1,164 +1,161 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useWeapon } from '@/hooks';
+import { useState, useRef, useEffect, type CSSProperties, type PointerEvent } from 'react';
 import { useUIStore } from '@/hooks/uiStore';
 
-interface DragState {
-  active: boolean;
-  startX: number;
-  startY: number;
-  startTopFrac: number;
-  moved: boolean;
+const FAB_SIZE = 48;
+const STORAGE_KEY = 'weapon:fab';
+
+type FabPos = { side: 'left' | 'right'; y: number };
+
+function loadPos(): FabPos {
+  if (typeof window === 'undefined') return { side: 'right', y: 0.5 };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if ((p.side === 'left' || p.side === 'right') && typeof p.y === 'number') {
+        return { side: p.side, y: Math.max(0, Math.min(1, p.y)) };
+      }
+    }
+  } catch {}
+  return { side: 'right', y: 0.5 };
 }
 
-const DRAG_THRESHOLD_PX = 6;
+function savePos(p: FabPos) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
+}
 
-/**
- * Speed Dial — port of legacy `.speeddial` block.
- *
- * Behaviour ported from `_legacy/index.html`:
- *  - Vertical FAB pinned to either left or right edge (`edge-left` / `edge-right`).
- *  - Long-press-free direct drag: pointer-down + move > 6px → drag mode.
- *  - On release, snap to nearest edge and persist `state.fab` so position
- *    survives reload.
- *  - Tap (no drag) toggles the action menu.
- *  - Quick actions: Record / Challenges / Friends → hub tabs.
- *    Recording in progress → FAB becomes a stop button (no menu).
- */
 export function SpeedDial() {
-  const { state, setFab } = useWeapon();
   const recording = useUIStore((s) => s.recording);
   const startRecording = useUIStore((s) => s.startRecording);
   const stopRecording = useUIStore((s) => s.stopRecording);
-  const openCompete = useUIStore((s) => s.openCompete);
+  const setRankOpen = useUIStore((s) => s.setRankOpen);
+  const setModal = useUIStore((s) => s.setModal);
 
   const [open, setOpen] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const fabRef = useRef<HTMLButtonElement | null>(null);
-  const drag = useRef<DragState>({
-    active: false,
-    startX: 0,
-    startY: 0,
-    startTopFrac: 0.5,
-    moved: false,
-  });
-  const fab = state?.fab ?? { side: 'right' as const, y: 0.74 };
-  const [livePos, setLivePos] = useState<{ side: 'left' | 'right'; y: number }>(fab);
+  const [pos, setPos] = useState<FabPos>({ side: 'right', y: 0.5 });
+  const [mounted, setMounted] = useState(false);
 
-  // Sync local position when persisted `fab` changes (e.g. reload).
+  const sdRef = useRef<HTMLDivElement>(null);
+  const drag = useRef({ down: false, moved: false, sx: 0, sy: 0, x: 0, y: 0 });
+
+  // load saved position after mount (avoid SSR/hydration mismatch) + recompute on resize
   useEffect(() => {
-    if (!drag.current.active) setLivePos(fab);
-  }, [fab.side, fab.y]); // eslint-disable-line react-hooks/exhaustive-deps
+    setPos(loadPos());
+    setMounted(true);
+    const onResize = () => setPos((p) => ({ ...p }));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
-  function close() { setOpen(false); }
+  const close = () => setOpen(false);
 
-  function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
-    if (recording.active) return; // recording = no drag, just stop on tap
-    drag.current = {
-      active: true,
-      startX: e.clientX,
-      startY: e.clientY,
-      startTopFrac: livePos.y,
-      moved: false,
-    };
-    try { fabRef.current?.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  const bounds = () => ({ minY: 64, maxY: Math.max(120, window.innerHeight - 150) });
+
+  const style: CSSProperties | undefined = (() => {
+    if (!mounted || typeof window === 'undefined') return undefined;
+    const { minY, maxY } = bounds();
+    const yTop = Math.round(minY + pos.y * (maxY - minY));
+    const appW = Math.min(window.innerWidth, 480);
+    const sideMargin = Math.max(0, (window.innerWidth - appW) / 2);
+    const bottom = Math.round(window.innerHeight - (yTop + FAB_SIZE));
+    return pos.side === 'right'
+      ? { top: 'auto', bottom, right: sideMargin, left: 'auto' }
+      : { top: 'auto', bottom, left: sideMargin, right: 'auto' };
+  })();
+
+  function onPointerDown(e: PointerEvent<HTMLButtonElement>) {
+    drag.current = { down: true, moved: false, sx: e.clientX, sy: e.clientY, x: 0, y: 0 };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
   }
 
-  function onPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
-    if (!drag.current.active) return;
-    const dx = e.clientX - drag.current.startX;
-    const dy = e.clientY - drag.current.startY;
-    if (!drag.current.moved && Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
-      drag.current.moved = true;
-      setDragging(true);
-      if (open) setOpen(false);
+  function onPointerMove(e: PointerEvent<HTMLButtonElement>) {
+    const d = drag.current;
+    if (!d.down) return;
+    const dx = e.clientX - d.sx;
+    const dy = e.clientY - d.sy;
+    if (!d.moved && Math.hypot(dx, dy) > 6) {
+      d.moved = true;
+      sdRef.current?.classList.add('dragging');
+      setOpen(false);
     }
-    if (!drag.current.moved) return;
-    const h = window.innerHeight;
-    const nextY = Math.max(0.05, Math.min(0.92, drag.current.startTopFrac + dy / h));
-    const nextSide: 'left' | 'right' = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
-    setLivePos({ side: nextSide, y: nextY });
+    if (d.moved) {
+      if (e.cancelable) e.preventDefault();
+      const { minY, maxY } = bounds();
+      const x = Math.max(8, Math.min(window.innerWidth - FAB_SIZE - 8, e.clientX - FAB_SIZE / 2));
+      const y = Math.max(minY, Math.min(maxY, e.clientY - FAB_SIZE / 2));
+      d.x = x; d.y = y;
+      const el = sdRef.current;
+      if (el) {
+        el.style.bottom = 'auto';
+        el.style.top = `${y}px`;
+        el.style.left = `${x}px`;
+        el.style.right = 'auto';
+      }
+    }
   }
 
-  function onPointerUp() {
-    if (!drag.current.active) return;
-    drag.current.active = false;
-    if (drag.current.moved) {
-      setDragging(false);
-      setFab(livePos);
+  function endDrag() {
+    const d = drag.current;
+    if (!d.down) return;
+    d.down = false;
+    if (d.moved) {
+      sdRef.current?.classList.remove('dragging');
+      const cx = d.x + FAB_SIZE / 2;
+      const side: 'left' | 'right' = cx > window.innerWidth / 2 ? 'right' : 'left';
+      const { minY, maxY } = bounds();
+      const y = Math.max(0, Math.min(1, (d.y - minY) / (maxY - minY)));
+      const next: FabPos = { side, y };
+      savePos(next);
+      // clear transient inline styles so the computed style takes over on re-render
+      const el = sdRef.current;
+      if (el) { el.style.top = ''; el.style.bottom = ''; el.style.left = ''; el.style.right = ''; }
+      setPos(next);
+    } else if (recording.active) {
+      stopRecording();
     } else {
-      // Tap — toggle menu (or stop recording, handled in onClick fallback).
-      if (!recording.active) setOpen((v) => !v);
+      setOpen((o) => !o);
     }
   }
 
-  function onActionRecord() { startRecording(); close(); }
-  function onActionChallenges() { openCompete('challenges'); close(); }
-  function onActionFriends() { openCompete('crews'); close(); }
-
-  // Position style — `top` derived from y-fraction (avoids both `bottom` +
-  // `top` fighting); `bottom` left to CSS default for safe-area handling.
-  const top = `${(livePos.y * 100).toFixed(2)}%`;
-  const sideClass = livePos.side === 'left' ? 'edge-left' : 'edge-right';
+  const edgeClass = mounted ? (pos.side === 'right' ? ' edge-right' : ' edge-left') : '';
 
   return (
     <>
-      <div className={`sd-scrim${open ? ' show' : ''}`} onClick={close} />
-      <div
-        ref={containerRef}
-        className={`speeddial ${sideClass}${open ? ' open' : ''}${dragging ? ' dragging' : ''}`}
-        style={{ top, bottom: 'auto' }}
-      >
+      <div className={`sd-scrim${open ? ' on' : ''}`} onClick={close} />
+      <div ref={sdRef} className={`speeddial${edgeClass}${open ? ' open' : ''}`} style={style}>
         <div className="sd-options">
-          <button type="button" className="sd-opt" onClick={onActionRecord}>
-            <span className="sd-ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="12" cy="12" r="8" />
-                <circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none" />
-              </svg>
-            </span>
+          <button className="sd-opt" onClick={() => { setRankOpen(true); close(); }}>
+            <span className="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg></span>
+            Rank <span className="nu">NEW</span>
+          </button>
+          <button className="sd-opt" onClick={() => { startRecording(); close(); }}>
+            <span className="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none" /></svg></span>
             Record
           </button>
-          <button type="button" className="sd-opt" onClick={onActionChallenges}>
-            <span className="sd-ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 4h10v3a5 5 0 0 1-10 0z" />
-                <path d="M5 4H3v1.5A3.5 3.5 0 0 0 6.5 9M19 4h2v1.5A3.5 3.5 0 0 1 17.5 9M12 12v3.5M9 20h6M9.5 20l.6-4.5h3.8l.6 4.5" />
-              </svg>
-            </span>
+          <button className="sd-opt" onClick={() => { setModal('ranks'); close(); }}>
+            <span className="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M7 4h10v3a5 5 0 0 1-10 0z" /><path d="M5 4H3v1.5A3.5 3.5 0 0 0 6.5 9M19 4h2v1.5A3.5 3.5 0 0 1 17.5 9M12 12v3.5M9 20h6M9.5 20l.6-4.5h3.8l.6 4.5" /></svg></span>
             Challenges
           </button>
-          <button type="button" className="sd-opt" onClick={onActionFriends}>
-            <span className="sd-ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <circle cx="9" cy="8" r="3.2" />
-                <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
-                <path d="M16.5 5.2a3 3 0 0 1 0 5.6M17.5 14a5.5 5.5 0 0 1 3 4.5" />
-              </svg>
-            </span>
+          <button className="sd-opt" onClick={close}>
+            <span className="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><path d="M16.5 5.2a3 3 0 0 1 0 5.6M17.5 14a5.5 5.5 0 0 1 3 4.5" /></svg></span>
             Friends
           </button>
         </div>
         <button
-          ref={fabRef}
-          type="button"
           className={`sd-fab${open ? ' open' : ''}${recording.active ? ' recording' : ''}`}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onClick={() => { if (recording.active) stopRecording(); }}
-          aria-label={recording.active ? 'Stop recording' : 'Quick actions'}
+          onPointerUp={endDrag}
+          onPointerCancel={() => { const d = drag.current; if (d.down) { d.down = false; if (d.moved) { sdRef.current?.classList.remove('dragging'); setPos((p) => ({ ...p })); } } }}
+          aria-label="Quick actions"
         >
           {recording.active ? (
             <span className="sd-sign">■</span>
           ) : (
             <>
-              <svg className="sd-bolt" viewBox="0 0 28 44" aria-hidden="true">
-                <path d="M17.5 0 1.5 26.5H11L8.5 44 26.5 16H16.5L21.5 0Z" />
-              </svg>
+              <svg className="sd-bolt" viewBox="0 0 28 44" aria-hidden="true"><path d="M17.5 0 1.5 26.5H11L8.5 44 26.5 16H16.5L21.5 0Z" /></svg>
               <span className="sd-label">Actions</span>
             </>
           )}
