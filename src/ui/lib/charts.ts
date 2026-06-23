@@ -1,5 +1,5 @@
 import { GROUP_COLORS } from '@/domain/catalogue';
-import type { Group } from '@/domain/types';
+import type { GymGroup } from '@/domain/types';
 
 const ACCENT = '#e8ff00';
 const TRACK = 'rgba(255,255,255,.08)';
@@ -50,7 +50,13 @@ export function drawWeek(ctx: CanvasRenderingContext2D, W: number, H: number, da
   });
 }
 
-export function drawSplit(ctx: CanvasRenderingContext2D, W: number, H: number, counts: Record<string, number>) {
+export function drawSplit(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  counts: Record<string, number>,
+  colorFor?: (g: string) => string
+) {
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   if (!entries.length) return;
   const max = entries[0][1] || 1;
@@ -67,7 +73,7 @@ export function drawSplit(ctx: CanvasRenderingContext2D, W: number, H: number, c
     ctx.fillText(g, 0, y + barH / 2);
 
     const barW = (W - labelW - 40) * (c / max);
-    ctx.fillStyle = GROUP_COLORS[g as Group] || '#888';
+    ctx.fillStyle = colorFor ? colorFor(g) : GROUP_COLORS[g as GymGroup] || '#888';
     ctx.beginPath();
     ctx.roundRect(labelW, y, barW, barH, 4);
     ctx.fill();

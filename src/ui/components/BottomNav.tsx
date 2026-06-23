@@ -32,7 +32,7 @@ export function BottomNav() {
   const { tab, setTab } = useUIStore();
   const { state } = useWeapon();
 
-  const bucket = state?.[state.mode ?? 'strength'];
+  const bucket = state ? state.sports[state.sport] : undefined;
   const li = state ? levelInfo(bucket?.logs ?? []) : null;
   const showBadge = li && bucket && li.lvl > (bucket.seenLevel ?? 0);
 

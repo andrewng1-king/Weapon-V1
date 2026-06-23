@@ -1,3 +1,6 @@
+export type SportId = 'gym' | 'run' | 'calisthenics' | 'hyrox';
+export type Metric = 'weight' | 'dist' | 'reps' | 'hold';
+
 export interface LogEntry {
   id: string;
   date: string;
@@ -5,6 +8,12 @@ export interface LogEntry {
   kg: number;
   reps: number;
   sets: number;
+  // polymorphic (non-weight) metrics
+  m?: Metric;
+  v1?: number;
+  v2?: number;
+  u1?: string;
+  u2?: string;
 }
 
 export interface CustomExercise {
@@ -12,6 +21,9 @@ export interface CustomExercise {
   g: string;
   t: string;
   start: number;
+  m?: Metric;
+  u1?: string;
+  u2?: string;
 }
 
 export interface PresetExercise {
@@ -19,6 +31,9 @@ export interface PresetExercise {
   t: string;
   start: number;
   custom?: boolean;
+  m?: Metric;
+  u1?: string;
+  u2?: string;
 }
 
 export interface Profile {
@@ -33,7 +48,8 @@ export interface Profile {
 }
 
 export interface Goals {
-  calTarget: number;
+  /** Weekly target per sport. Falls back to the sport's default when missing. */
+  targets: Partial<Record<SportId, number>>;
 }
 
 export interface DevSettings {
@@ -51,10 +67,9 @@ export interface Bucket {
 }
 
 export interface WeaponState {
-  mode: 'strength' | 'endurance';
+  sport: SportId;
   bw: number;
-  strength: Bucket;
-  endurance: Bucket;
+  sports: Record<SportId, Bucket>;
   profile: Profile;
   goals: Goals;
   theme: 'light' | 'dark';
@@ -68,7 +83,10 @@ export interface User {
   display_name?: string;
 }
 
-export type Group = 'Chest' | 'Back' | 'Shoulders' | 'Arms' | 'Legs' | 'Core';
+/** Gym muscle groups — used for color mapping. */
+export type GymGroup = 'Chest' | 'Back' | 'Shoulders' | 'Arms' | 'Legs' | 'Core';
+/** A category label within the current sport (varies per sport). */
+export type Group = string;
 
 export interface AvatarStats {
   vol: number;

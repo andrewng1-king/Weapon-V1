@@ -1,5 +1,5 @@
 import type { WorkoutRepository } from './ports';
-import type { WeaponState, Profile, Goals } from '@/domain/types';
+import type { WeaponState, Profile, Goals, SportId } from '@/domain/types';
 
 export async function saveProfile(
   repo: WorkoutRepository,
@@ -23,8 +23,8 @@ export async function setGoal(
   return updated;
 }
 
-export function setMode(state: WeaponState, mode: 'strength' | 'endurance'): WeaponState {
-  return { ...state, mode };
+export function setSport(state: WeaponState, sport: SportId): WeaponState {
+  return { ...state, sport };
 }
 
 export function setTheme(state: WeaponState, theme: 'light' | 'dark'): WeaponState {

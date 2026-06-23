@@ -5,7 +5,7 @@ import { useWeapon } from '@/hooks';
 import { levelInfo, rankFor, xpToReach, MAXLVL, STR_RANKS } from '@/domain/ranks';
 import { avStats, achList, groupCounts } from '@/domain/metrics';
 import { fmtK, fmtVol } from '@/domain/format';
-import { GROUPS } from '@/domain/catalogue';
+import { catsFor } from '@/domain/catalogue';
 import { Chart } from './Chart';
 import { drawRadar } from '@/ui/lib/charts';
 import { useUIStore } from '@/hooks/uiStore';
@@ -28,15 +28,16 @@ export function AvatarTab() {
   }, []);
 
   if (!state) return null;
-  const bucket = state[state.mode];
+  const bucket = state.sports[state.sport];
   const devLvl = state.dev.on ? state.dev.lvl : undefined;
   const li = levelInfo(bucket.logs);
   const effectiveLvl = devLvl ?? li.lvl;
   const rk = rankFor(effectiveLvl);
-  const stats = avStats(bucket.logs, effectiveLvl);
+  const stats = avStats(bucket.logs, state.sport, effectiveLvl);
   const achievements = achList(stats);
   const gotCount = achievements.filter((a) => a.got).length;
-  const counts = groupCounts(bucket.logs);
+  const counts = groupCounts(bucket.logs, state.sport);
+  const cats = catsFor(state.sport);
   const profileName = state.profile.name || 'You';
 
   return (
@@ -114,7 +115,7 @@ export function AvatarTab() {
       <div className="card">
         <h2>Strength radar</h2>
         <div className="hint">Sets trained per muscle group — all time</div>
-        <Chart height={260} draw={(ctx, w, h) => drawRadar(ctx, w, h, GROUPS, counts)} deps={[counts]} />
+        <Chart height={260} draw={(ctx, w, h) => drawRadar(ctx, w, h, cats, counts)} deps={[counts]} />
       </div>
 
       <div className="card">

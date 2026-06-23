@@ -518,6 +518,12 @@ select.exsel{width:100%;background:var(--panel-2);border:1px solid var(--line);c
 .sd-fab .sd-sign{font-size:1.55rem;font-weight:300;line-height:1;}
 .sd-fab:active{transform:scale(.93);}
 .sd-fab.recording{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.55),0 10px 24px -8px rgba(0,0,0,.7);}
+.sd-fab{touch-action:none;}
+.speeddial.dragging{transition:none;}
+.speeddial.dragging .sd-fab{cursor:grabbing;}
+.speeddial.edge-right{align-items:flex-end;}
+.speeddial.edge-right .sd-options{transform-origin:bottom right;align-items:flex-end;}
+.speeddial.edge-right .sd-opt{flex-direction:row-reverse;padding:7px 7px 7px 16px;}
 
 /* ===== bottom nav ===== */
 .bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(var(--app),100%);background:var(--nav-bg);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;align-items:center;z-index:40;padding:8px 12px calc(8px + env(safe-area-inset-bottom));}
@@ -805,3 +811,12 @@ body.dragging-active{-webkit-user-select:none;user-select:none;}
 .home-compete .hc-name{font-size:.95rem;font-weight:700;margin-top:2px;color:var(--ink);}
 .home-compete .hc-sub{font-size:.74rem;color:var(--muted);margin-top:2px;}
 .home-compete .hc-go{flex:0 0 auto;color:var(--accent);}
+
+/* ===== sport selector bar ===== */
+.sportbar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;max-width:var(--app);margin:0 auto;padding:10px 16px 2px;scroll-snap-type:x proximity;}
+.sportbar::-webkit-scrollbar{display:none;}
+.sport-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 13px;color:var(--muted);font-size:.82rem;font-weight:600;cursor:pointer;scroll-snap-align:center;white-space:nowrap;transition:transform var(--t-press) var(--e-out),border-color var(--t-micro),color var(--t-micro),background var(--t-micro);}
+.sport-chip svg{width:17px;height:17px;flex:0 0 auto;color:var(--faint);}
+.sport-chip:active{transform:scale(.95);}
+.sport-chip.on{background:var(--panel-2);border-color:rgba(var(--accent-rgb),.5);color:var(--ink);}
+.sport-chip.on svg{color:var(--accent);}

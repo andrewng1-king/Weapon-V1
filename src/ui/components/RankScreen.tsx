@@ -72,7 +72,7 @@ export function RankScreen() {
             <div className="rk">{r.rk}</div>
             <div className="rav" style={{ background: r.avBg, color: r.avFg }}>{r.av}</div>
             <div className="rmid"><div className="rname">{r.name}</div><div className="rmeta">{r.meta}</div></div>
-            <div><div className="rsc">{r.score.toLocaleString()}</div><div className={`rdelta ${r.delta}`}>{r.d}</div></div>
+            <div><div className="rsc">{r.score.toLocaleString('en-US')}</div><div className={`rdelta ${r.delta}`}>{r.d}</div></div>
           </div>
         ))}
 

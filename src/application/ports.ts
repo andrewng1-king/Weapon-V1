@@ -1,4 +1,4 @@
-import type { WeaponState, User, LogEntry, CustomExercise } from '@/domain/types';
+import type { WeaponState, User, LogEntry, CustomExercise, SportId } from '@/domain/types';
 
 export interface UserRepository {
   listUsers(): Promise<User[]>;
@@ -8,7 +8,7 @@ export interface UserRepository {
 export interface WorkoutRepository {
   loadState(userId: string): Promise<WeaponState>;
   saveSettings(userId: string, state: WeaponState): Promise<void>;
-  addLog(userId: string, log: LogEntry, mode: 'strength' | 'endurance'): Promise<void>;
+  addLog(userId: string, log: LogEntry, sport: SportId): Promise<void>;
   deleteLog(userId: string, logId: string): Promise<void>;
   addCustomExercise(userId: string, ex: CustomExercise): Promise<void>;
 }

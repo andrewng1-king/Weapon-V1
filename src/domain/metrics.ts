@@ -1,5 +1,5 @@
-import type { LogEntry, AvatarStats, Achievement, Group } from './types';
-import { GROUPS, groupOf } from './catalogue';
+import type { LogEntry, AvatarStats, Achievement, SportId } from './types';
+import { catsFor, groupOf } from './catalogue';
 
 export function calForVals(kg: number, reps: number, sets: number, bw: number): number {
   kg = +kg || 0;
@@ -9,6 +9,32 @@ export function calForVals(kg: number, reps: number, sets: number, bw: number): 
   const durMin = sets * (reps * 3 + 45) / 60;
   const met = 3.5 + 2.5 * Math.min(1, bw > 0 ? kg / bw : 0);
   return Math.round(met * 3.5 * bw / 200 * durMin);
+}
+
+/** Calories for a single log, branching on its metric (weight/dist/hold/reps). */
+export function calForLog(l: LogEntry, bw: number): number {
+  if (!l.m || l.m === 'weight') return calForVals(l.kg, l.reps, l.sets || 1, bw);
+  bw = bw || 75;
+  const v1 = l.v1 || 0;
+  const v2 = l.v2 || 0;
+  const sets = l.sets || 1;
+  switch (l.m) {
+    case 'dist': {
+      const km = l.u1 === 'm' ? v1 / 1000 : v1;
+      const elev = l.u2 && /↑/.test(l.u2) ? v2 : 0;
+      return Math.round(km * bw * 0.95 + elev * bw * 0.0085);
+    }
+    case 'hold':
+      return Math.round(v1 * sets * 0.15);
+    case 'reps':
+    default:
+      return Math.round(v1 * sets * 0.45);
+  }
+}
+
+/** Primary numeric value of a log for its metric (kg for weight, else v1). */
+export function primaryVal(l: LogEntry): number {
+  return !l.m || l.m === 'weight' ? l.kg || 0 : l.v1 || 0;
 }
 
 export function weekDates(): string[] {
@@ -27,16 +53,16 @@ export function volume(log: LogEntry): number {
   return (log.kg || 0) * (log.reps || 0) * (log.sets || 1);
 }
 
-export function setsByGroup(logs: LogEntry[]): Record<string, number> {
+export function setsByGroup(logs: LogEntry[], sport: SportId): Record<string, number> {
   const counts: Record<string, number> = {};
   logs.forEach((l) => {
-    const g = groupOf(l.ex) || 'Other';
+    const g = groupOf(sport, l.ex) || 'Other';
     counts[g] = (counts[g] || 0) + (l.sets || 1);
   });
   return counts;
 }
 
-export function avStats(logs: LogEntry[], devLvl?: number): AvatarStats {
+export function avStats(logs: LogEntry[], sport: SportId, devLvl?: number): AvatarStats {
   let vol = 0, maxSet = 0;
   const groups: Record<string, boolean> = {};
   const days: Record<string, boolean> = {};
@@ -44,7 +70,7 @@ export function avStats(logs: LogEntry[], devLvl?: number): AvatarStats {
   logs.forEach((l) => {
     vol += (l.kg || 0) * (l.reps || 0) * (l.sets || 1);
     if ((l.kg || 0) > maxSet) maxSet = l.kg || 0;
-    const g = groupOf(l.ex);
+    const g = groupOf(sport, l.ex);
     if (g) groups[g] = true;
     const d = new Date(l.date);
     if (!isNaN(d.getTime())) days[d.toISOString().slice(0, 10)] = true;
@@ -89,11 +115,11 @@ export function achList(st: AvatarStats): Achievement[] {
   ];
 }
 
-export function groupCounts(logs: LogEntry[]): Record<Group, number> {
-  const counts = {} as Record<Group, number>;
-  GROUPS.forEach((g) => (counts[g] = 0));
+export function groupCounts(logs: LogEntry[], sport: SportId): Record<string, number> {
+  const counts: Record<string, number> = {};
+  catsFor(sport).forEach((g) => (counts[g] = 0));
   logs.forEach((l) => {
-    const g = groupOf(l.ex);
+    const g = groupOf(sport, l.ex);
     if (g && counts[g] != null) counts[g] += l.sets || 1;
   });
   return counts;

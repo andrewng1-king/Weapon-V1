@@ -7,7 +7,7 @@ export function useThemeSync(state: WeaponState | null) {
   useEffect(() => {
     if (!state) return;
     const body = document.body;
-    body.setAttribute('data-mode', state.mode);
+    body.setAttribute('data-sport', state.sport);
     body.setAttribute('data-theme', state.theme);
-  }, [state?.mode, state?.theme]);
+  }, [state?.sport, state?.theme]);
 }

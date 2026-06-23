@@ -5,20 +5,25 @@ import { queryKeys } from './queryKeys';
 import { SupabaseWorkoutRepository } from '@/infrastructure/supabase/WorkoutRepository';
 import { isSupabaseConfigured } from '@/infrastructure/supabase/client';
 import { useUserPicker } from './useUserPicker';
-import type { WeaponState, LogEntry, CustomExercise, Group, Bucket } from '@/domain/types';
+import type { WeaponState, LogEntry, CustomExercise, Group, Bucket, SportId } from '@/domain/types';
+import { SPORT_IDS } from '@/domain/catalogue';
 import * as workoutUC from '@/application/workoutUsecases';
 import * as profileUC from '@/application/profileUsecases';
 
 const repo = new SupabaseWorkoutRepository();
 
-const EMPTY_BUCKET: Bucket = { logs: [], custom: [], removed: [], order: {} };
+function emptySports(): Record<SportId, Bucket> {
+  const r = {} as Record<SportId, Bucket>;
+  for (const s of SPORT_IDS) r[s] = { logs: [], custom: [], removed: [], order: {} };
+  return r;
+}
+
 const DEFAULT_STATE: WeaponState = {
-  mode: 'strength',
+  sport: 'gym',
   bw: 75,
-  strength: { ...EMPTY_BUCKET },
-  endurance: { ...EMPTY_BUCKET },
+  sports: emptySports(),
   profile: {},
-  goals: { calTarget: 3000 },
+  goals: { targets: {} },
   theme: 'dark',
   logo: 'athlete',
   dev: { on: false, lvl: 1, color: 0 },
@@ -85,13 +90,14 @@ export function useWeapon() {
     addCustomExercise: (ex: CustomExercise) => addCustomMutation.mutate(ex),
     removeExercise: (name: string) => updateState((s) => workoutUC.removeExercise(s, name)),
     setOrder: (group: Group, order: string[]) => updateState((s) => workoutUC.setOrder(s, group, order)),
-    setMode: (mode: 'strength' | 'endurance') => updateState((s) => profileUC.setMode(s, mode)),
+    setSport: (sport: SportId) => updateState((s) => profileUC.setSport(s, sport)),
     setTheme: (theme: 'light' | 'dark') => updateState((s) => profileUC.setTheme(s, theme)),
     toggleLogo: () => updateState((s) => profileUC.toggleLogo(s)),
     setDevMode: (on: boolean, lvl?: number) => updateState((s) => profileUC.setDevMode(s, on, lvl)),
     setAccent: (idx: number) => updateState((s) => profileUC.setAccent(s, idx)),
     saveProfile: (profile: Partial<WeaponState['profile']>) => updateState((s) => ({ ...s, profile: { ...s.profile, ...profile } })),
-    setGoal: (calTarget: number) => updateState((s) => ({ ...s, goals: { ...s.goals, calTarget } })),
+    setGoal: (sport: SportId, target: number) =>
+      updateState((s) => ({ ...s, goals: { targets: { ...s.goals.targets, [sport]: target } } })),
     setBw: (bw: number) => updateState((s) => ({ ...s, bw })),
   };
 }

@@ -22,10 +22,10 @@ export function HomeTab() {
 
   if (!state) return null;
 
-  const bucket = state[state.mode];
+  const bucket = state.sports[state.sport];
   const li = levelInfo(bucket.logs);
   const rk = rankFor(li.lvl);
-  const stats = avStats(bucket.logs, li.lvl);
+  const stats = avStats(bucket.logs, state.sport, li.lvl);
   const today = todayStr();
   const loggedToday = bucket.logs.filter((l) => l.date === today).length;
   const profileName = state.profile?.name || 'Athlete';

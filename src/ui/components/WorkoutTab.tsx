@@ -2,10 +2,24 @@
 
 import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import { useWeapon, useUIStore } from '@/hooks';
-import { exercisesFor, GROUPS, GROUP_COLORS, groupOf } from '@/domain/catalogue';
-import { todayStr, fmtDate, uid } from '@/domain/format';
-import type { Group, PresetExercise } from '@/domain/types';
-import { createLogEntry, isLoggedToday } from '@/application/workoutUsecases';
+import {
+  exercisesFor,
+  catsFor,
+  catColor,
+  groupOf,
+  sportDef,
+  exMetric,
+  exU1,
+  exU2,
+  step1For,
+  step2For,
+  SPORT_IDS,
+  SPORTS,
+  SP_ICON,
+} from '@/domain/catalogue';
+import { todayStr, fmtDate } from '@/domain/format';
+import type { Group, PresetExercise, Metric, SportId } from '@/domain/types';
+import { createLogEntry, createMetricLogEntry, isLoggedToday } from '@/application/workoutUsecases';
 
 const nf = (n: number) => Math.round(n).toLocaleString('en-US');
 const RING_CIRC = 125.66; // 2π × 20
@@ -34,6 +48,21 @@ function fmtLast(kg: number, reps: number): string {
   return `${kg === 0 ? 'BW' : fmtN(kg)} × ${reps}`;
 }
 
+/** Metric-aware summary chip for the focused card (non-weight metrics). */
+function fmtMetricChip(em: Metric, v1: number, v2: number, u1: string, u2: string | null): string {
+  if (em === 'dist') {
+    const main = `${fmtN(v1)} ${u1}`.trim();
+    return u2 ? `${main} · ${fmtN(v2)} ${u2}` : main;
+  }
+  if (em === 'hold') return `${fmtN(v1)} ${u1 || 'sec'}`;
+  return `${fmtN(v1)} ${u1 || 'reps'}`;
+}
+/** Compact "last" line for non-weight metrics. */
+function fmtMetricLast(em: Metric, v1: number, v2: number, u1: string, u2: string | null): string {
+  if (em === 'dist') return u2 ? `${fmtN(v1)}${u1} · ${fmtN(v2)}${u2}` : `${fmtN(v1)}${u1}`;
+  return `${fmtN(v1)} ${u1 || (em === 'hold' ? 'sec' : 'reps')}`;
+}
+
 function prefersReduced() {
   return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
 }
@@ -47,24 +76,38 @@ const CheckGlyph = () => (
   </svg>
 );
 
-function BarbellIcon() {
+function SportGlyph({ sport }: { sport: SportId }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 9v6M5.5 7v10M18.5 7v10M22 9v6M5.5 12h13" />
-    </svg>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      dangerouslySetInnerHTML={{ __html: SP_ICON[sport] }}
+    />
   );
 }
 
-function MTile({ color, sm }: { color?: string; sm?: boolean }) {
+function MTile({ color, sm, sport }: { color?: string; sm?: boolean; sport: SportId }) {
   return (
     <div className={`mtile${sm ? ' sm' : ''}`} style={{ ['--gc' as string]: color ?? 'var(--accent)' } as CSSProperties}>
-      <BarbellIcon />
+      <SportGlyph sport={sport} />
     </div>
   );
 }
 
+/** Default working values for an exercise (kg slot = v1, reps slot = v2). */
+function defaultV(sport: SportId, ex: PresetExercise): { kg: number; reps: number } {
+  const em = exMetric(sport, ex);
+  if (em === 'weight') return { kg: ex.start, reps: 10 };
+  if (em === 'dist') return { kg: ex.start, reps: exU2(sport, ex) ? 30 : 0 };
+  return { kg: ex.start, reps: 0 };
+}
+
 export function WorkoutTab() {
-  const { state, logExercise, deleteLog, removeExercise } = useWeapon();
+  const { state, logExercise, deleteLog, removeExercise, setSport } = useWeapon();
   const { group, setGroup, searchOpen, searchQuery, toggleSearch, setSearchQuery, vals, setVal } = useUIStore();
   const setModal = useUIStore((s) => s.setModal);
 
@@ -77,31 +120,42 @@ export function WorkoutTab() {
   const [floaters, setFloaters] = useState<{ id: string; text: string }[]>([]);
   const volTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // cleanup timer on unmount
   useEffect(() => {
     return () => { if (volTimerRef.current) clearInterval(volTimerRef.current); };
   }, []);
 
-  if (!state) return null;
-  const bucket = state[state.mode];
-  const today = todayStr();
+  const sport = state?.sport ?? 'gym';
+  const cats = catsFor(sport);
 
-  // exercise list (unchanged logic)
+  // keep the selected category valid for the current sport
+  useEffect(() => {
+    if (!cats.includes(group)) setGroup(cats[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sport]);
+
+  if (!state) return null;
+  const bucket = state.sports[sport];
+  const today = todayStr();
+  const def = sportDef(sport);
+  const sportMetric = def.metric;
+
+  const curGroup = cats.includes(group) ? group : cats[0];
+
+  // exercise list
   let exercises: (PresetExercise & { group?: Group })[] = [];
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
-    GROUPS.forEach((g) => {
-      exercisesFor(g, bucket).forEach((e) => {
+    cats.forEach((g) => {
+      exercisesFor(sport, g, bucket).forEach((e) => {
         if (e.n.toLowerCase().includes(q) || e.t.toLowerCase().includes(q)) {
           exercises.push({ ...e, group: g });
         }
       });
     });
   } else {
-    exercises = exercisesFor(group, bucket);
+    exercises = exercisesFor(sport, curGroup, bucket);
   }
 
-  // split into active / logged
   const activeExercises = exercises.filter((e) => !isLoggedToday(bucket, e.n));
   const loggedExercises = exercises.filter((e) => isLoggedToday(bucket, e.n));
   const total = exercises.length;
@@ -110,28 +164,38 @@ export function WorkoutTab() {
   const remaining = total - loggedCount;
   const ringOffset = RING_CIRC * (1 - loggedCount / Math.max(1, total));
 
-  // today's volume from real data
+  // metric-aware "today total" + label
+  function metricTotal(logs: typeof bucket.logs): number {
+    if (sportMetric === 'weight') return logs.reduce((s, l) => s + l.kg * l.reps * l.sets, 0);
+    if (sportMetric === 'dist') {
+      return logs.reduce((s, l) => {
+        const v = l.v1 ?? 0;
+        return s + (l.u1 === 'm' ? v / 1000 : v);
+      }, 0);
+    }
+    return logs.reduce((s, l) => s + (l.v1 ?? 0) * (l.sets || 1), 0);
+  }
+  const totalUnit =
+    sportMetric === 'weight' ? 'kg today' : sportMetric === 'dist' ? 'km today' : sportMetric === 'hold' ? 'sec today' : 'reps today';
+
   const todayLogs = bucket.logs.filter((l) => l.date === today);
-  const todayVol = todayLogs.reduce((s, l) => s + l.kg * l.reps * l.sets, 0);
+  const todayTotal = metricTotal(todayLogs);
 
-  // sync displayVol to real data when bucket updates (no active tween)
   useEffect(() => {
-    if (!volTimerRef.current) setDisplayVol(todayVol);
-  }, [todayVol]);
+    if (!volTimerRef.current) setDisplayVol(todayTotal);
+  }, [todayTotal]);
 
-  // which card is focused (expanded)
   const focusedId = (() => {
     if (expandedId && activeExercises.some((e) => e.n === expandedId)) return expandedId;
     return activeExercises[0]?.n ?? null;
   })();
 
-  // reset focus when group/search changes
   useEffect(() => {
     setExpandedId(null);
-  }, [group, searchQuery]);
+  }, [group, searchQuery, sport]);
 
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-  const weekVol = bucket.logs.filter((l) => l.date >= weekAgo).reduce((s, l) => s + l.kg * l.reps * l.sets, 0);
+  const weekTotal = metricTotal(bucket.logs.filter((l) => l.date >= weekAgo));
 
   function tweenVol(target: number) {
     if (prefersReduced()) { setDisplayVol(target); return; }
@@ -148,43 +212,73 @@ export function WorkoutTab() {
   }
 
   function handleLog(ex: PresetExercise) {
-    const v = vals[ex.n] ?? { kg: ex.start, reps: 10 };
+    const v = vals[ex.n] ?? defaultV(sport, ex);
+    const em = exMetric(sport, ex);
     const done = isLoggedToday(bucket, ex.n);
 
     if (done) {
       haptic(18);
       const todayLog = bucket.logs.find((l) => l.ex === ex.n && l.date === today);
       if (todayLog) deleteLog(todayLog.id);
-      tweenVol(Math.max(0, todayVol - v.kg * v.reps));
-    } else {
-      haptic([12, 28, 12]);
-      const log = createLogEntry(v.kg, v.reps, ex.n);
-      logExercise(log);
-
-      if (!prefersReduced()) {
-        // volt wipe + stamp
-        setJustLogged(ex.n);
-        window.setTimeout(() => setJustLogged((cur) => (cur === ex.n ? null : cur)), 700);
-        // +XP floater
-        const xp = 18 + Math.round((v.kg * v.reps) / 35);
-        const fid = 'f' + Date.now();
-        setFloaters((fs) => [...fs, { id: fid, text: `+${xp} XP` }]);
-        setTimeout(() => setFloaters((fs) => fs.filter((f) => f.id !== fid)), 900);
-      }
-
-      // advance focus to next unlogged
-      const next = activeExercises.find((e) => e.n !== ex.n);
-      if (next) setExpandedId(next.n);
-
-      // animate volume
-      tweenVol(todayVol + v.kg * v.reps);
+      tweenVol(metricTotal(todayLogs.filter((l) => l.id !== todayLog?.id)));
+      return;
     }
+
+    haptic([12, 28, 12]);
+    if (em === 'weight') {
+      logExercise(createLogEntry(v.kg, v.reps, ex.n));
+    } else {
+      const u2 = exU2(sport, ex);
+      logExercise(createMetricLogEntry(ex.n, em, v.kg, u2 ? v.reps : undefined, exU1(sport, ex), u2));
+    }
+
+    if (!prefersReduced()) {
+      setJustLogged(ex.n);
+      window.setTimeout(() => setJustLogged((cur) => (cur === ex.n ? null : cur)), 700);
+      const xp = 18 + Math.round((v.kg * Math.max(1, v.reps || 1)) / 35);
+      const fid = 'f' + Date.now();
+      setFloaters((fs) => [...fs, { id: fid, text: `+${xp} XP` }]);
+      setTimeout(() => setFloaters((fs) => fs.filter((f) => f.id !== fid)), 900);
+    }
+
+    const next = activeExercises.find((e) => e.n !== ex.n);
+    if (next) setExpandedId(next.n);
+
+    // optimistic bump for the displayed total
+    const bump =
+      em === 'weight'
+        ? v.kg * v.reps
+        : em === 'dist'
+          ? exU1(sport, ex) === 'm'
+            ? v.kg / 1000
+            : v.kg
+          : v.kg;
+    tweenVol(todayTotal + bump);
   }
 
   const sessionDates = [...new Set(bucket.logs.map((l) => l.date))].sort().reverse();
 
   return (
     <>
+      {/* ── SPORT SELECTOR ── */}
+      <div className="sportbar" role="tablist" aria-label="Sport">
+        {SPORT_IDS.map((id) => {
+          const on = id === sport;
+          return (
+            <button
+              key={id}
+              className={`sport-chip${on ? ' on' : ''}`}
+              role="tab"
+              aria-selected={on}
+              onClick={() => { if (!on) { setSport(id); haptic(8); } }}
+            >
+              <SportGlyph sport={id} />
+              <span>{SPORTS[id].name}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="wk-seg">
         <button className={wkPage === 'workout' ? 'on' : ''} onClick={() => setWkPage('workout')}>Workout</button>
         <button className={wkPage === 'history' ? 'on' : ''} onClick={() => setWkPage('history')}>History</button>
@@ -195,13 +289,13 @@ export function WorkoutTab() {
           <div className="wk-head">
             <div className="wk-top">
               <button className={`group-dd${groupMenuOpen ? ' open' : ''}`} onClick={() => setGroupMenuOpen(!groupMenuOpen)}>
-                <span>{group}</span>
+                <span>{curGroup}</span>
                 <svg className="dd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M6 9l6 6 6-6" /></svg>
               </button>
               {groupMenuOpen && (
                 <div className="group-menu open">
-                  {GROUPS.map((g) => (
-                    <button key={g} className={g === group ? 'on' : ''} onClick={() => { setGroup(g); setGroupMenuOpen(false); }}>{g}</button>
+                  {cats.map((g) => (
+                    <button key={g} className={g === curGroup ? 'on' : ''} onClick={() => { setGroup(g); setGroupMenuOpen(false); }}>{g}</button>
                   ))}
                 </div>
               )}
@@ -237,14 +331,14 @@ export function WorkoutTab() {
               <div className="wsh-info">
                 <div className="wsh-vol-row">
                   <span className="wsh-num">{nf(displayVol)}</span>
-                  <span className="wsh-unit"> kg today</span>
+                  <span className="wsh-unit"> {totalUnit}</span>
                   {floaters.map((f) => (
                     <span key={f.id} className="xp-floater">{f.text}</span>
                   ))}
                 </div>
                 <div className="wsh-track"><i style={{ width: `${pct}%` }} /></div>
                 <div className="wsh-remain">
-                  {remaining > 0 ? `${remaining} lift${remaining !== 1 ? 's' : ''} left · 7-day ${nf(weekVol)} kg` : '🎯 Session complete'}
+                  {remaining > 0 ? `${remaining} left · 7-day ${nf(weekTotal)}` : '🎯 Session complete'}
                 </div>
               </div>
             </div>
@@ -258,27 +352,37 @@ export function WorkoutTab() {
               {activeExercises.map((ex) => {
                 const isFocused = !searchQuery && ex.n === focusedId;
                 const isAnimating = justLogged === ex.n;
-                const v = vals[ex.n] ?? { kg: ex.start, reps: 10 };
+                const em = exMetric(sport, ex);
+                const u1 = exU1(sport, ex);
+                const u2 = exU2(sport, ex);
+                const s1 = step1For(sport, ex);
+                const s2 = step2For(sport, ex);
+                const v = vals[ex.n] ?? defaultV(sport, ex);
                 const lastLog = bucket.logs.filter((l) => l.ex === ex.n).slice(-1)[0];
                 const isDetailOpen = openDetail === ex.n;
+                const exColor = ex.group ? catColor(sport, ex.group) : catColor(sport, curGroup);
 
                 if (!isFocused) {
-                  // compact row
+                  const lastTxt = lastLog
+                    ? em === 'weight'
+                      ? fmtLast(lastLog.kg, lastLog.reps)
+                      : fmtMetricLast(em, lastLog.v1 ?? 0, lastLog.v2 ?? 0, lastLog.u1 ?? u1, lastLog.u2 ?? u2)
+                    : null;
                   return (
                     <div
                       key={ex.n}
                       className={`ex-compact${isAnimating ? ' logged-anim-compact' : ''}`}
                       onClick={() => setExpandedId(ex.n)}
                     >
-                      <div className="ex-icon-dim">
-                        <BarbellIcon />
+                      <div className="ex-icon-dim" style={{ ['--gc' as string]: exColor } as CSSProperties}>
+                        <SportGlyph sport={sport} />
                       </div>
                       <div className="ex-txt">
                         <div className="ex-name">
                           {ex.n}
                           {searchQuery && ex.group && <span className="search-grouptag">{ex.group}</span>}
                         </div>
-                        {lastLog && <div className="ex-target">last · {fmtLast(lastLog.kg, lastLog.reps)}</div>}
+                        {lastTxt && <div className="ex-target">last · {lastTxt}</div>}
                       </div>
                     </div>
                   );
@@ -286,13 +390,22 @@ export function WorkoutTab() {
 
                 // focused (expanded) card
                 const deltaKg = lastLog ? Math.round((v.kg - lastLog.kg) * 2) / 2 : 0;
-                const hasDelta = !!lastLog;
+                const showDelta = em === 'weight' && !!lastLog;
                 const deltaClass = deltaKg > 0 ? 'up' : deltaKg < 0 ? 'down' : 'flat';
                 const deltaStr = deltaKg > 0
                   ? `▲ +${deltaKg} kg vs last`
                   : deltaKg < 0
                     ? `▼ ${Math.abs(deltaKg)} kg vs last`
                     : '→ matches last';
+
+                const chip = em === 'weight'
+                  ? fmtPlate(ex.n, v.kg, v.reps)
+                  : fmtMetricChip(em, v.kg, v.reps, u1, u2);
+                const lastChip = lastLog
+                  ? em === 'weight'
+                    ? fmtLast(lastLog.kg, lastLog.reps)
+                    : fmtMetricLast(em, lastLog.v1 ?? 0, lastLog.v2 ?? 0, lastLog.u1 ?? u1, lastLog.u2 ?? u2)
+                  : null;
 
                 return (
                   <div
@@ -304,8 +417,8 @@ export function WorkoutTab() {
                     <span className="ex-stamp" aria-hidden="true">Logged</span>
 
                     <div className="ex-head" onClick={() => setOpenDetail(isDetailOpen ? null : ex.n)}>
-                      <div className="ex-icon-volt">
-                        <BarbellIcon />
+                      <div className="ex-icon-volt" style={{ ['--gc' as string]: exColor } as CSSProperties}>
+                        <SportGlyph sport={sport} />
                       </div>
                       <div className="ex-txt">
                         <div className="ex-name">
@@ -316,19 +429,45 @@ export function WorkoutTab() {
                       </div>
                     </div>
 
-                    {hasDelta && (
+                    {showDelta && (
                       <div className={`ex-delta-chip ${deltaClass}`}>{deltaStr}</div>
                     )}
 
                     <div className="controls">
+                      {/* primary value (v1) */}
                       <div className="stepper">
-                        <button onClick={() => setVal(ex.n, Math.max(0, v.kg - 2.5), v.reps)}>−</button>
-                        <button onClick={() => setVal(ex.n, v.kg + 2.5, v.reps)}>+</button>
+                        <button onClick={() => setVal(ex.n, Math.max(0, Math.round((v.kg - s1) * 100) / 100), v.reps)}>−</button>
+                        <div className="val">
+                          <input
+                            type="number"
+                            step={s1}
+                            inputMode={em === 'weight' || (em === 'dist' && u1 !== 'm') ? 'decimal' : 'numeric'}
+                            value={v.kg}
+                            onChange={(e) => setVal(ex.n, Math.max(0, +e.target.value || 0), v.reps)}
+                          />
+                          <span className="unit">{em === 'weight' ? 'kg' : u1}</span>
+                        </div>
+                        <button onClick={() => setVal(ex.n, Math.round((v.kg + s1) * 100) / 100, v.reps)}>+</button>
                       </div>
-                      <div className="stepper">
-                        <button onClick={() => setVal(ex.n, v.kg, Math.max(1, v.reps - 1))}>−</button>
-                        <button onClick={() => setVal(ex.n, v.kg, v.reps + 1)}>+</button>
-                      </div>
+
+                      {/* secondary value (v2): reps for weight, or u2 for dist */}
+                      {(em === 'weight' || (em === 'dist' && u2)) && (
+                        <div className="stepper">
+                          <button onClick={() => setVal(ex.n, v.kg, Math.max(em === 'weight' ? 1 : 0, v.reps - s2))}>−</button>
+                          <div className="val">
+                            <input
+                              type="number"
+                              step={s2}
+                              inputMode="numeric"
+                              value={v.reps}
+                              onChange={(e) => setVal(ex.n, v.kg, Math.max(em === 'weight' ? 1 : 0, Math.round(+e.target.value) || 0))}
+                            />
+                            <span className="unit">{em === 'weight' ? 'reps' : u2}</span>
+                          </div>
+                          <button onClick={() => setVal(ex.n, v.kg, v.reps + s2)}>+</button>
+                        </div>
+                      )}
+
                       <button
                         className={`logbtn${isAnimating ? ' swipe done' : ''}`}
                         onClick={() => handleLog(ex)}
@@ -341,9 +480,9 @@ export function WorkoutTab() {
                     </div>
 
                     <div className="ex-plate-row">
-                      <span className="ex-plate-chip">{fmtPlate(ex.n, v.kg, v.reps)}</span>
-                      {lastLog && (
-                        <span className="ex-plate-last">last · {fmtLast(lastLog.kg, lastLog.reps)}</span>
+                      <span className="ex-plate-chip">{chip}</span>
+                      {lastChip && (
+                        <span className="ex-plate-last">last · {lastChip}</span>
                       )}
                     </div>
 
@@ -351,7 +490,9 @@ export function WorkoutTab() {
                       <div className="detail open">
                         <div className="mini-hist">
                           {bucket.logs.filter((l) => l.ex === ex.n).slice(-5).map((l) => (
-                            <div key={l.id}><b>{l.kg}kg × {l.reps}</b> — {l.date}</div>
+                            <div key={l.id}>
+                              <b>{em === 'weight' ? `${l.kg}kg × ${l.reps}` : fmtMetricLast(em, l.v1 ?? 0, l.v2 ?? 0, l.u1 ?? u1, l.u2 ?? u2)}</b> — {l.date}
+                            </div>
                           ))}
                         </div>
                         <button className="removex" onClick={() => removeExercise(ex.n)}>Remove exercise</button>
@@ -366,17 +507,21 @@ export function WorkoutTab() {
                 <div className="done-group">
                   <div className="done-group-hdr">Done · {loggedExercises.length}</div>
                   {loggedExercises.map((ex) => {
+                    const em = exMetric(sport, ex);
                     const todayLog = bucket.logs.filter((l) => l.ex === ex.n && l.date === today).slice(-1)[0];
                     const todayCount = bucket.logs.filter((l) => l.ex === ex.n && l.date === today).length;
+                    const meta = todayLog
+                      ? em === 'weight'
+                        ? `${todayLog.kg} kg × ${todayLog.reps}${todayCount > 1 ? ` ×${todayCount}` : ''}`
+                        : `${fmtMetricLast(em, todayLog.v1 ?? 0, todayLog.v2 ?? 0, todayLog.u1 ?? exU1(sport, ex), todayLog.u2 ?? exU2(sport, ex))}${todayCount > 1 ? ` ×${todayCount}` : ''}`
+                      : '';
                     return (
                       <div key={ex.n} className="done-row">
                         <div className="done-check"><CheckGlyph /></div>
                         <div className="ex-txt">
                           <div className="ex-name">{ex.n}</div>
                         </div>
-                        <div className="done-meta">
-                          {todayLog ? `${todayLog.kg} kg × ${todayLog.reps}${todayCount > 1 ? ` ×${todayCount}` : ''}` : ''}
-                        </div>
+                        <div className="done-meta">{meta}</div>
                         <button className="del" onClick={() => {
                           const log = bucket.logs.find((l) => l.ex === ex.n && l.date === today);
                           if (log) deleteLog(log.id);
@@ -391,7 +536,7 @@ export function WorkoutTab() {
                 <span className="ac-plus">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
                 </span>
-                Add exercise to {group}
+                Add exercise to {curGroup}
               </button>
             </div>
           </main>
@@ -400,20 +545,25 @@ export function WorkoutTab() {
         <main>
           {sessionDates.map((date) => {
             const dayLogs = bucket.logs.filter((l) => l.date === date);
-            const vol = dayLogs.reduce((s, l) => s + l.kg * l.reps * l.sets, 0);
+            const dayTotal = metricTotal(dayLogs);
             return (
               <div key={date}>
-                <div className="session-date">{fmtDate(date)}<small>{nf(vol)} kg vol</small></div>
+                <div className="session-date">{fmtDate(date)}<small>{nf(dayTotal)} {totalUnit.replace(' today', '')}</small></div>
                 {dayLogs.map((l) => {
-                  const g = groupOf(l.ex);
+                  const g = groupOf(sport, l.ex);
+                  const em = l.m ?? sportMetric;
+                  const meta = em === 'weight'
+                    ? `${l.kg}kg × ${l.reps} · ${l.sets} ${l.sets === 1 ? 'set' : 'sets'}`
+                    : `${fmtMetricLast(em, l.v1 ?? 0, l.v2 ?? 0, l.u1 ?? '', l.u2 ?? null)} · ${l.sets} ${l.sets === 1 ? 'set' : 'sets'}`;
+                  const metricVal = em === 'weight' ? l.kg * l.reps * l.sets : (l.v1 ?? 0) * (l.sets || 1);
                   return (
                     <div key={l.id} className="hentry">
-                      <MTile sm color={g ? GROUP_COLORS[g] : undefined} />
+                      <MTile sm sport={sport} color={g ? catColor(sport, g) : undefined} />
                       <div className="he-txt">
                         <div className="he-name">{l.ex}</div>
-                        <div className="he-sub">{l.kg}kg × {l.reps} · {l.sets} {l.sets === 1 ? 'set' : 'sets'}</div>
+                        <div className="he-sub">{meta}</div>
                       </div>
-                      <span className="he-metric"><b>{nf(l.kg * l.reps * l.sets)}</b> kg</span>
+                      <span className="he-metric"><b>{nf(metricVal)}</b> {em === 'weight' ? 'kg' : (l.u1 ?? '')}</span>
                       <button className="del" onClick={() => deleteLog(l.id)}>✕</button>
                     </div>
                   );

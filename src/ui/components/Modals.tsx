@@ -2,12 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useWeapon, useUIStore } from '@/hooks';
-import { GROUPS, MAXLVL, STR_RANKS } from '@/domain';
-import type { Group, PresetExercise } from '@/domain/types';
-import { exercisesFor, groupOf } from '@/domain/catalogue';
-import { calForVals } from '@/domain/metrics';
+import { MAXLVL, STR_RANKS } from '@/domain';
+import type { Group, PresetExercise, LogEntry } from '@/domain/types';
+import { exercisesFor, groupOf, catsFor, sportDef } from '@/domain/catalogue';
+import { calForLog } from '@/domain/metrics';
 import { todayStr, fmtDate, fmtK } from '@/domain/format';
-import { createLogEntry } from '@/application/workoutUsecases';
+import { createLogEntry, createMetricLogEntry } from '@/application/workoutUsecases';
+import { exMetric, exU1, exU2 } from '@/domain/catalogue';
+
+/** Human-readable metric summary for a single log. */
+function fmtLogMeta(l: LogEntry): string {
+  if (!l.m || l.m === 'weight') return `${l.reps} reps @ ${l.kg} kg`;
+  const u1 = l.u1 ?? '';
+  if (l.m === 'dist') {
+    const main = `${l.v1 ?? 0} ${u1}`.trim();
+    return l.v2 != null ? `${main} · ${l.v2} ${l.u2 ?? 'min'}`.trim() : main;
+  }
+  if (l.m === 'hold') return `${l.v1 ?? 0} ${u1 || 'sec'}`;
+  return `${l.v1 ?? 0} ${u1 || 'reps'}`;
+}
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -26,13 +39,20 @@ function RecExerciseModal() {
   const [recGroup, setRecGroup] = useState<Group>(curGroup);
 
   if (!state) return null;
-  const bucket = state[state.mode];
+  const bucket = state.sports[state.sport];
   const today = todayStr();
-  const exs = exercisesFor(recGroup, bucket);
+  const exs = exercisesFor(state.sport, recGroup, bucket);
 
   function recLog(ex: PresetExercise) {
+    const sport = state!.sport;
     const v = vals[ex.n] ?? { kg: ex.start, reps: 10 };
-    logExercise(createLogEntry(v.kg, v.reps, ex.n));
+    const m = exMetric(sport, ex);
+    if (m === 'weight') {
+      logExercise(createLogEntry(v.kg, v.reps, ex.n));
+    } else {
+      const u2 = exU2(sport, ex);
+      logExercise(createMetricLogEntry(ex.n, m, v.kg, u2 ? v.reps : undefined, exU1(sport, ex), u2));
+    }
     addRecordingLog(ex.n);
     haptic([12, 28, 12]);
   }
@@ -42,7 +62,7 @@ function RecExerciseModal() {
       <div className="modal" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
         <h3>Log exercise</h3>
         <div className="rex-groups">
-          {GROUPS.map((g) => (
+          {catsFor(state.sport).map((g) => (
             <button key={g} className={`rex-gbtn${g === recGroup ? ' on' : ''}`} onClick={() => setRecGroup(g)}>{g}</button>
           ))}
         </div>
@@ -83,7 +103,8 @@ function CalendarModal() {
   const [cal, setCal] = useState({ y: now.getFullYear(), m: now.getMonth(), sel: today as string | null });
 
   if (!state) return null;
-  const logs = state[state.mode].logs;
+  const sport = state.sport;
+  const logs = state.sports[sport].logs;
   const bw = state.bw;
   const loggedDates = new Set(logs.map((l) => l.date));
   const startDow = (new Date(cal.y, cal.m, 1).getDay() + 6) % 7;
@@ -106,8 +127,8 @@ function CalendarModal() {
 
   const detList = cal.sel ? logs.filter((l) => l.date === cal.sel) : [];
   const detVol = detList.reduce((a, l) => a + l.kg * l.reps * l.sets, 0);
-  const detCal = detList.reduce((a, l) => a + calForVals(l.kg, l.reps, l.sets, bw), 0);
-  const detGroups = [...new Set(detList.map((l) => groupOf(l.ex)).filter(Boolean))].join(' · ');
+  const detCal = detList.reduce((a, l) => a + calForLog(l, bw), 0);
+  const detGroups = [...new Set(detList.map((l) => groupOf(sport, l.ex)).filter(Boolean))].join(' · ');
 
   return (
     <div className="modal-bg open" onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
@@ -139,9 +160,9 @@ function CalendarModal() {
             </>
           ) : (
             <>
-              <div className="day-sum">{fmtDate(cal.sel)} — {detGroups || '—'} · {fmtK(detVol)} kg · {Math.round(detCal)} kcal · {detList.length} lifts</div>
+              <div className="day-sum">{fmtDate(cal.sel)} — {detGroups || '—'}{detVol ? ` · ${fmtK(detVol)} kg` : ''} · {Math.round(detCal)} kcal · {detList.length} lifts</div>
               {detList.map((l) => (
-                <div key={l.id} className="rec-row"><span className="rx-ex">{l.ex}</span><span className="rx-meta">{l.reps} reps @ {l.kg} kg</span></div>
+                <div key={l.id} className="rec-row"><span className="rx-ex">{l.ex}</span><span className="rx-meta">{fmtLogMeta(l)}</span></div>
               ))}
             </>
           )}
@@ -169,8 +190,18 @@ export function Modals() {
   if (!state) return null;
 
   function handleAddExercise() {
-    if (!exName.trim()) return;
-    addCustomExercise({ n: exName.trim(), g: group, t: exTarget.trim(), start: 0 });
+    if (!exName.trim() || !state) return;
+    const def = sportDef(state.sport);
+    const m = def.metric;
+    addCustomExercise({
+      n: exName.trim(),
+      g: group,
+      t: exTarget.trim(),
+      start: 0,
+      ...(m !== 'weight' ? { m } : {}),
+      ...(def.u1 ? { u1: def.u1 } : {}),
+      ...(def.u2 ? { u2: def.u2 } : {}),
+    });
     setExName(''); setExTarget(''); setModal(null);
   }
 
